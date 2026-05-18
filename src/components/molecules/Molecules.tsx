@@ -32,12 +32,13 @@ interface MoleculeStudentCardProps {
   name: string;
   studentClass: string;
   semester: string;
+  photoUrl?: string;
   progress: number;
   active?: boolean;
   onClick: () => void;
 }
 
-export function MoleculeStudentCard({ name, studentClass, semester, progress, active, onClick }: MoleculeStudentCardProps) {
+export function MoleculeStudentCard({ name, studentClass, semester, photoUrl, progress, active, onClick }: MoleculeStudentCardProps) {
   const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   
   return (
@@ -51,10 +52,17 @@ export function MoleculeStudentCard({ name, studentClass, semester, progress, ac
       )}
     >
       <div className={cn(
-        "w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-white font-black text-xs md:text-sm shrink-0 shadow-inner",
+        "w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-white font-black text-xs md:text-sm shrink-0 shadow-inner overflow-hidden relative",
         active ? "bg-white/20" : "bg-sky-500 shadow-lg shadow-sky-500/20"
       )}>
-        {initials || "??"}
+        {photoUrl ? (
+          <img src={photoUrl} alt={name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="flex flex-col items-center">
+             <User size={14} className="md:w-4 md:h-4 opacity-40 mb-[-2px]" />
+             <span>{initials || "??"}</span>
+          </div>
+        )}
       </div>
       
       <div className="grow overflow-hidden">

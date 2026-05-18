@@ -4,7 +4,7 @@ import { MoleculeScaleSelector } from "../molecules/Molecules";
 import { MoleculePhotoUploader } from "../molecules/MoleculePhotoUploader";
 import { Aspect, AssessmentScale, ScoreData } from "../../types";
 import { motion, AnimatePresence } from "motion/react";
-import { CheckCircle2, Circle, Zap, Users } from "lucide-react";
+import { CheckCircle2, Circle } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 interface OrganismIndikatorListProps {
@@ -12,7 +12,6 @@ interface OrganismIndikatorListProps {
   aspect: Aspect;
   scores: ScoreData;
   onScoreChange: (indicatorId: string, score: AssessmentScale) => void;
-  onBulkScoreChange?: (indicatorId: string, score: AssessmentScale) => void;
   progress?: number;
   lastSaved?: string | null;
   isSaving?: boolean;
@@ -23,12 +22,10 @@ export function OrganismIndikatorList({
   aspect, 
   scores, 
   onScoreChange, 
-  onBulkScoreChange,
   progress = 0, 
   lastSaved, 
   isSaving 
 }: OrganismIndikatorListProps) {
-  const [bulkIndicator, setBulkIndicator] = useState<string | null>(null);
 
   return (
     <div className="max-w-7xl mx-auto scaled-p-1 md:scaled-p-4">
@@ -97,27 +94,10 @@ export function OrganismIndikatorList({
                   </AtomText>
                 </div>
 
-                <div className="flex justify-between items-end mt-2">
-                  <MoleculeScaleSelector 
-                    currentValue={currentScore}
-                    onSelect={(val) => onScoreChange(indicator.id, val)}
-                  />
-                  {onBulkScoreChange && currentScore && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm(`Terapkan CAPAIAN "${currentScore}" ke SEMUA MURID untuk indikator ini?`)) {
-                          onBulkScoreChange(indicator.id, currentScore);
-                        }
-                      }}
-                      className="p-2 md:p-3 bg-fuchsia-500 hover:bg-fuchsia-400 text-white rounded-xl shadow-lg shadow-fuchsia-500/30 transition-all active:scale-90 flex items-center gap-2 group/bulk"
-                      title="Terapkan ke Semua Murid"
-                    >
-                      <Users size={14} className="group-hover/bulk:scale-110 transition-transform" />
-                      <span className="text-[10px] font-black uppercase tracking-tighter">Semua</span>
-                    </button>
-                  )}
-                </div>
+                <MoleculeScaleSelector 
+                  currentValue={currentScore}
+                  onSelect={(val) => onScoreChange(indicator.id, val)}
+                />
 
                 <MoleculePhotoUploader 
                   studentId={studentId}

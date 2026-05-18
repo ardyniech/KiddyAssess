@@ -5,6 +5,7 @@ export interface Student {
   name: string;
   class: string;
   semester: string;
+  photoUrl?: string; // Optional student photo
 }
 
 export interface SchoolProfile {

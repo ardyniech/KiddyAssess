@@ -6,9 +6,11 @@ import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../../lib/utils";
+import { generateStudentNarrative } from "../../services/aiService";
 import { generateIndependentNarrative } from "../../services/narrativeService";
 import { db, AssessmentPhoto } from "../../lib/db";
 import { getSchoolProfile } from "../../services/settingsService";
+import { syncService } from "../../lib/firebaseService";
 
 interface OrganismPDFPreviewProps {
   student: Student;
@@ -58,22 +60,69 @@ export function OrganismPDFPreview({ student, aspects, allScores, globalProgress
     }
   }, [student.id, allScores, profile?.useAINarrative]);
 
-  const generateAllNarratives = () => {
+  const [generatingAspects, setGeneratingAspects] = useState<Record<string, boolean>>({});
+
+  const generateSingleAINarrative = async (aspect: Aspect) => {
+    if (profile?.useAINarrative === false) return;
+    
+    setGeneratingAspects(prev => ({ ...prev, [aspect.id]: true }));
+    try {
+      const scores = allScores[aspect.id] || {};
+      if (Object.keys(scores).length === 0) return;
+      
+      const result = await generateStudentNarrative(
+        student.name, 
+        aspect.name, 
+        aspect.indicators, 
+        scores as Record<string, string>
+      );
+      
+      if (result) {
+        setNarratives(prev => ({
+          ...prev,
+          [aspect.id]: { 
+            narrative: result.narrative, 
+            advice: result.parentAdvice 
+          }
+        }));
+      }
+    } catch (err) {
+      console.error("AI Single Generation failed:", err);
+    } finally {
+      setGeneratingAspects(prev => ({ ...prev, [aspect.id]: false }));
+    }
+  };
+
+  const generateAllNarratives = async () => {
     if (profile?.useAINarrative === false) return;
     setIsGenerating(true);
     
-    setTimeout(() => {
-      const newNarratives: typeof narratives = {};
-      aspects.forEach(asp => {
+    try {
+      const newNarratives: typeof narratives = { ...narratives };
+      for (const asp of aspects) {
         const scores = allScores[asp.id] || {};
         if (Object.keys(scores).length > 0) {
-          const result = generateIndependentNarrative(student.name, asp, scores);
-          newNarratives[asp.id] = { narrative: result.narrative, advice: result.parentAdvice };
+          // If real AI enabled, use it
+          const result = await generateStudentNarrative(
+            student.name, 
+            asp.name, 
+            asp.indicators, 
+            scores as Record<string, string>
+          );
+          if (result) {
+            newNarratives[asp.id] = { 
+              narrative: result.narrative, 
+              advice: result.parentAdvice 
+            };
+          }
         }
-      });
+      }
       setNarratives(newNarratives);
+    } catch (err) {
+      console.error("AI All Generation failed:", err);
+    } finally {
       setIsGenerating(false);
-    }, 800);
+    }
   };
 
   const exportPDF = async () => {
@@ -305,10 +354,22 @@ export function OrganismPDFPreview({ student, aspects, allScores, globalProgress
                   </div>
   
                   {/* Assessment Content */}
-                  <div className="mb-6 min-h-[350px]">
-                    <div className="flex items-center gap-3 mb-4">
-                        <FileText size={16} className="text-slate-900" />
-                        <h3 className="text-xs font-black uppercase tracking-[0.1em] border-b-2 border-slate-900 pb-1">Ulasan Capaian {aspect.name}</h3>
+                  <div className="mb-6 min-h-[350px] relative group/narrative">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <FileText size={16} className="text-slate-900" />
+                            <h3 className="text-xs font-black uppercase tracking-[0.1em] border-b-2 border-slate-900 pb-1">Ulasan Capaian {aspect.name}</h3>
+                        </div>
+                        {profile.useAINarrative !== false && (
+                          <button 
+                            onClick={() => generateSingleAINarrative(aspect)}
+                            disabled={generatingAspects[aspect.id] || Object.keys(allScores[aspect.id] || {}).length === 0}
+                            className="flex items-center gap-1.5 px-2 py-1 bg-cyan-500 hover:bg-cyan-400 text-white text-[9px] font-black uppercase rounded-lg shadow-lg shadow-cyan-500/20 transition-all opacity-0 group-hover/narrative:opacity-100 disabled:opacity-30"
+                          >
+                            {generatingAspects[aspect.id] ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                            AI Regene
+                          </button>
+                        )}
                     </div>
                     <div className="text-[13px] leading-[1.8] text-justify font-medium px-4 border-l-2 border-slate-200 whitespace-pre-wrap" style={{ color: '#334155', tabSize: 4 }}>
                       {content.narrative || "Sedang memproses narasi penilaian... Mohon berikan 1 indikator skor terlebih dahulu jika belum."}

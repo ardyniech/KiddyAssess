@@ -2,32 +2,61 @@ import React, { useState } from "react";
 import { AtomText, AtomBadge } from "../atoms/CommonAtoms";
 import { MoleculeStudentCard, MoleculeFormInput } from "../molecules/Molecules";
 import { Student } from "../../types";
-import { Plus, X, Search, Users } from "lucide-react";
+import { Plus, X, Search, Users, Edit2, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface OrganismStudentManagerProps {
   students: Student[];
   onAddStudent: (student: Omit<Student, "id">) => void;
+  onUpdateStudent: (student: Student) => void;
+  onDeleteStudent: (studentId: string) => void;
   onSelectStudent: (student: Student) => void;
   activeStudentId?: string;
   onClose: () => void;
 }
 
-export function OrganismStudentManager({ students, onAddStudent, onSelectStudent, activeStudentId, onClose }: OrganismStudentManagerProps) {
+export function OrganismStudentManager({ 
+  students, 
+  onAddStudent, 
+  onUpdateStudent, 
+  onDeleteStudent, 
+  onSelectStudent, 
+  activeStudentId, 
+  onClose 
+}: OrganismStudentManagerProps) {
   const [isAdding, setIsAdding] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [search, setSearch] = useState("");
-  const [formData, setFormData] = useState({ name: "", class: "", semester: "1" });
+  const [formData, setFormData] = useState({ name: "", class: "", semester: "1", photoUrl: "" });
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
 
   const filteredStudents = students.filter(s => 
     s.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const startEdit = (student: Student, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingStudent(student);
+    setFormData({ 
+      name: student.name, 
+      class: student.class, 
+      semester: student.semester,
+      photoUrl: student.photoUrl || ""
+    });
+    setIsAdding(true);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.name && formData.class) {
-      onAddStudent(formData);
-      setFormData({ name: "", class: "", semester: "1" });
+      if (editingStudent) {
+        onUpdateStudent({ ...editingStudent, ...formData });
+      } else {
+        onAddStudent(formData);
+      }
+      setFormData({ name: "", class: "", semester: "1", photoUrl: "" });
       setIsAdding(false);
+      setEditingStudent(null);
     }
   };
 
@@ -74,14 +103,36 @@ export function OrganismStudentManager({ students, onAddStudent, onSelectStudent
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                     >
-                      <MoleculeStudentCard
-                        name={student.name}
-                        studentClass={student.class}
-                        semester={student.semester}
-                        progress={0} 
-                        active={activeStudentId === student.id}
-                        onClick={() => onSelectStudent(student)}
-                      />
+                      <div className="relative group/card">
+                        <MoleculeStudentCard
+                          name={student.name}
+                          studentClass={student.class}
+                          semester={student.semester}
+                          photoUrl={student.photoUrl}
+                          progress={0} 
+                          active={activeStudentId === student.id}
+                          onClick={() => onSelectStudent(student)}
+                        />
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/card:opacity-100 transition-opacity">
+                          <button 
+                            onClick={(e) => startEdit(student, e)}
+                            className="p-2 md:p-1.5 bg-white/40 dark:bg-black/40 hover:bg-sky-500 hover:text-white rounded-lg transition-all shadow-sm border border-black/5 dark:border-white/5"
+                            title="Edit Data Murid"
+                          >
+                            <Edit2 size={12} className="md:w-3 md:h-3" />
+                          </button>
+                          <button 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setStudentToDelete(student);
+                            }}
+                            className="p-2 md:p-1.5 bg-white/40 dark:bg-black/40 hover:bg-red-500 hover:text-white rounded-lg transition-all shadow-sm border border-black/5 dark:border-white/5"
+                            title="Hapus Murid"
+                          >
+                            <Trash2 size={12} className="md:w-3 md:h-3" />
+                          </button>
+                        </div>
+                      </div>
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -99,15 +150,23 @@ export function OrganismStudentManager({ students, onAddStudent, onSelectStudent
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
-              className="flex-1 p-4 md:p-6 flex flex-col justify-center"
+              className="flex-1 p-4 md:p-6 flex flex-col overflow-y-auto custom-scrollbar"
             >
-              <div className="text-[9px] font-bold text-cyan-500 uppercase tracking-[0.2em] mb-4 text-center font-black">Tambah Murid Baru</div>
+              <div className="text-[9px] font-bold text-cyan-500 uppercase tracking-[0.2em] mb-4 text-center font-black">
+                {editingStudent ? "Ubah Data Murid" : "Tambah Murid Baru"}
+              </div>
               <form onSubmit={handleSubmit} className="space-y-3 glass-panel p-4 md:p-5 rounded-2xl dark:neon-cyan bg-white/50 dark:bg-slate-900/60">
                 <MoleculeFormInput 
                   label="Nama Murid" 
                   value={formData.name} 
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Contoh: Rayyan Al-Fatih"
+                />
+                <MoleculeFormInput 
+                  label="URL Foto Murid (Opsional)" 
+                  value={formData.photoUrl || ""} 
+                  onChange={e => setFormData({ ...formData, photoUrl: e.target.value })}
+                  placeholder="https://..."
                 />
                 <div className="grid grid-cols-2 gap-3">
                   <MoleculeFormInput 
@@ -131,7 +190,7 @@ export function OrganismStudentManager({ students, onAddStudent, onSelectStudent
                 <div className="flex gap-2 pt-3">
                   <button 
                     type="button"
-                    onClick={() => setIsAdding(false)}
+                    onClick={() => { setIsAdding(false); setEditingStudent(null); }}
                     className="flex-1 py-2 text-[10px] font-bold text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors uppercase"
                   >
                     Batal
@@ -140,7 +199,7 @@ export function OrganismStudentManager({ students, onAddStudent, onSelectStudent
                     type="submit"
                     className="flex-1 py-2 bg-cyan-500 hover:bg-cyan-400 rounded-lg text-[10px] font-black text-white shadow-lg shadow-cyan-500/20 transition-all uppercase tracking-widest"
                   >
-                    Simpan
+                    {editingStudent ? "Ubah" : "Simpan"}
                   </button>
                 </div>
               </form>
@@ -160,6 +219,55 @@ export function OrganismStudentManager({ students, onAddStudent, onSelectStudent
           </button>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AnimatePresence>
+        {studentToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setStudentToDelete(null)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm glass-card p-6 md:p-8 rounded-[2.5rem] dark:neon-cyan bg-white dark:bg-slate-900 shadow-2xl border-black/5 flex flex-col items-center text-center"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 mb-6">
+                <Trash2 size={24} />
+              </div>
+              
+              <AtomText variant="h3" className="mb-2 text-slate-900 dark:text-white font-black tracking-tight">Hapus Data Murid?</AtomText>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                Apakah Anda yakin ingin menghapus data <span className="font-black text-slate-900 dark:text-white">"{studentToDelete.name}"</span>? 
+                Seluruh data penilaian murid ini akan ikut terhapus secara permanen.
+              </p>
+
+              <div className="flex gap-3 w-full">
+                <button 
+                  onClick={() => setStudentToDelete(null)}
+                  className="flex-1 py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 transition-all"
+                >
+                  Batal
+                </button>
+                <button 
+                  onClick={() => {
+                    onDeleteStudent(studentToDelete.id);
+                    setStudentToDelete(null);
+                  }}
+                  className="flex-1 py-3 bg-red-500 hover:bg-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-red-500/20 transition-all"
+                >
+                  Hapus
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

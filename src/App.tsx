@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { Student, StudentAssessment, AssessmentScale, ScoreData } from "./types";
+import { Student, StudentAssessment, AssessmentScale, ScoreData, SchoolProfile } from "./types";
 import { ASPECTS } from "./constants";
 import { db, saveAssessments, loadAssessments } from "./lib/db";
+import { auth, signInWithGoogle, logout, testConnection } from "./lib/firebase";
+import { syncService } from "./lib/firebaseService";
+import { onAuthStateChanged, User } from "firebase/auth";
 import { OrganismHeader } from "./components/organisms/OrganismHeader";
 import { OrganismIndikatorList } from "./components/organisms/OrganismIndikatorList";
 import { OrganismStudentManager } from "./components/organisms/OrganismStudentManager";
@@ -10,28 +13,27 @@ import { OrganismAppSettings } from "./components/organisms/OrganismAppSettings"
 import { ThemeProvider, useAppTheme } from "./context/ThemeContext";
 import { AtomText, AtomBadge } from "./components/atoms/CommonAtoms";
 import { motion, AnimatePresence } from "motion/react";
-import { LayoutDashboard, FileText, Settings, Users, ChevronLeft, ChevronRight, CheckCircle2, Plus, ArrowRight, School, Sparkles } from "lucide-react";
+import { LayoutDashboard, FileText, Settings, Users, ChevronLeft, ChevronRight, CheckCircle2, Plus, ArrowRight, School, Sparkles, LogIn, Github, LogOut } from "lucide-react";
 import { cn } from "./lib/utils";
 import { getSchoolProfile } from "./services/settingsService";
-import { syncToCloud } from "./services/syncService";
+
+import { AuthProvider } from "./context/AuthContext";
 
 export default function RootApp() {
   return (
-    <ThemeProvider>
-      <App />
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 
 function App() {
   const { theme: appTheme } = useAppTheme();
-  const [students, setStudents] = useState<Student[]>([
-    { id: "1", name: "Ahmad Fauzi", class: "Kelompok A (TK-A)", semester: "1 (Ganjil)" },
-    { id: "2", name: "Siti Aminah", class: "Kelompok A (TK-A)", semester: "1 (Ganjil)" },
-    { id: "3", name: "Budi Santoso", class: "Kelompok B (TK-B)", semester: "1 (Ganjil)" },
-    { id: "4", name: "Laila Sari", class: "Kelompok B (TK-B)", semester: "2 (Genap)" },
-    { id: "5", name: "Rizky Ramadhan", class: "Kelompok A (TK-A)", semester: "1 (Ganjil)" }
-  ]);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [students, setStudents] = useState<Student[]>([]);
   const [assessments, setAssessments] = useState<StudentAssessment>({});
   const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
   const [activeAspectIndex, setActiveAspectIndex] = useState(0);
@@ -39,7 +41,19 @@ function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+
+  // Auth Listener
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthLoading(false);
+      if (u) testConnection();
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 3000);
@@ -51,8 +65,6 @@ function App() {
     const savedTheme = localStorage.getItem("kiddy_theme") as "light" | "dark";
     if (savedTheme) {
       setTheme(savedTheme);
-    } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      setTheme("dark");
     }
   }, []);
 
@@ -61,36 +73,56 @@ function App() {
     localStorage.setItem("kiddy_theme", theme);
   }, [theme]);
 
-  const [isSaving, setIsSaving] = useState(false);
 
-  // Initial Load from IndexedDB
+  // Initial Load with Cloud Sync
   useEffect(() => {
     async function initData() {
-      const savedStudents = await db.students.toArray();
-      const savedAssessments = await loadAssessments();
+      if (!user) return;
       
-      const savedActiveStudentId = localStorage.getItem("kiddy_active_student_id");
-      const savedActiveAspectIndex = localStorage.getItem("kiddy_active_aspect_index");
-      const savedView = localStorage.getItem("kiddy_view");
-
-      if (savedStudents.length > 0) setStudents(savedStudents);
-      setAssessments(savedAssessments);
-      
-      if (savedActiveStudentId) setActiveStudentId(JSON.parse(savedActiveStudentId));
-      if (savedActiveAspectIndex) setActiveAspectIndex(JSON.parse(savedActiveAspectIndex));
-      if (savedView) setView(JSON.parse(savedView) as "assessment" | "report");
+      setIsSaving(true);
+      try {
+        // Load from Cloud first if online
+        const cloudStudents = await syncService.getStudents();
+        const cloudAssessments = await syncService.getAssessments();
+        
+        if (cloudStudents.length > 0) {
+          setStudents(cloudStudents);
+          setAssessments(cloudAssessments);
+          // Sync back to local IDB for offline use
+          await db.students.clear();
+          await db.students.bulkAdd(cloudStudents);
+          await saveAssessments(cloudAssessments);
+        } else {
+          // Fallback to IDB
+          const savedStudents = await db.students.toArray();
+          const savedAssessments = await loadAssessments();
+          if (savedStudents.length > 0) setStudents(savedStudents);
+          setAssessments(savedAssessments);
+        }
+        
+        const savedActiveStudentId = localStorage.getItem("kiddy_active_student_id");
+        const savedView = localStorage.getItem("kiddy_view");
+        if (savedActiveStudentId) setActiveStudentId(JSON.parse(savedActiveStudentId));
+        if (savedView) setView(JSON.parse(savedView) as "assessment" | "report");
+        
+      } catch (err) {
+        console.error("Initialization failed:", err);
+      } finally {
+        setIsSaving(false);
+      }
     }
     
-    initData();
-  }, []);
+    if (!authLoading) initData();
+  }, [user, authLoading]);
 
-  const [lastSaved, setLastSaved] = useState<string | null>(null);
-
-  // Robust Auto-Save logic
+  // Robust Auto-Save to Cloud & Local
   useEffect(() => {
+    if (!user || students.length === 0) return;
+
     const saveToDB = async () => {
       setIsSaving(true);
       try {
+        // Local Save
         await Promise.all([
           db.students.clear().then(() => db.students.bulkAdd(students)),
           saveAssessments(assessments)
@@ -100,24 +132,27 @@ function App() {
         localStorage.setItem("kiddy_active_aspect_index", JSON.stringify(activeAspectIndex));
         localStorage.setItem("kiddy_view", JSON.stringify(view));
         
-        // Cloud Sync if enabled
-        const profile = await getSchoolProfile();
-        if (profile?.enableCloudSync) {
-            await syncToCloud(students, assessments, profile);
+        // Cloud Sync (Granular)
+        // We'll sync changed students/assessments. For now, simple bulk sync is fine as per logic.
+        const settings = await getSchoolProfile();
+        if (settings?.enableCloudSync) {
+          await Promise.all([
+            ...students.map(s => syncService.saveStudent(s)),
+            ...Object.keys(assessments).map(sid => syncService.saveAssessment(sid, assessments[sid]))
+          ]);
         }
 
         setLastSaved(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
       } catch (err) {
-        console.error("Auto-save failed:", err);
+        console.error("Auto-sync failed:", err);
       } finally {
-        // Small delay to prevent flickering
         setTimeout(() => setIsSaving(false), 800);
       }
     };
 
-    const timer = setTimeout(saveToDB, 1500); // Debounced save
+    const timer = setTimeout(saveToDB, 3000); // 3s debounce for cloud efficiency
     return () => clearTimeout(timer);
-  }, [students, assessments, activeStudentId, activeAspectIndex, view]);
+  }, [students, assessments, activeStudentId, activeAspectIndex, view, user]);
 
   const fillAllAssessments = () => {
     const newAssessments: StudentAssessment = { ...assessments };
@@ -153,6 +188,24 @@ function App() {
     setActiveStudentId(newStudent.id);
   };
 
+  const handleUpdateStudent = (student: Student) => {
+    setStudents(prev => prev.map(s => s.id === student.id ? student : s));
+  };
+
+  const handleDeleteStudent = (studentId: string) => {
+    if (confirm("Hapus data murid ini secara permanen? Data penilaian juga akan hilang.")) {
+      setStudents(prev => prev.filter(s => s.id !== studentId));
+      if (activeStudentId === studentId) setActiveStudentId(null);
+      
+      // Clean up assessments
+      setAssessments(prev => {
+        const newData = { ...prev };
+        delete newData[studentId];
+        return newData;
+      });
+    }
+  };
+
   const handleScoreChange = (indicatorId: string, score: AssessmentScale) => {
     if (!activeStudentId) return;
     
@@ -173,17 +226,6 @@ function App() {
     });
   };
 
-  const handleBulkScoreChange = (aspectId: string, indicatorId: string, score: AssessmentScale) => {
-    setAssessments(prev => {
-      const newAssessments = { ...prev };
-      students.forEach(student => {
-        if (!newAssessments[student.id]) newAssessments[student.id] = {};
-        if (!newAssessments[student.id][aspectId]) newAssessments[student.id][aspectId] = {};
-        newAssessments[student.id][aspectId][indicatorId] = score;
-      });
-      return newAssessments;
-    });
-  };
 
   const TOTAL_INDICATORS = ASPECTS.reduce((acc, aspect) => acc + aspect.indicators.length, 0);
 
@@ -200,6 +242,53 @@ function App() {
   };
 
   const activeGlobalProgress = activeStudentId ? calculateGlobalProgress(activeStudentId) : 0;
+
+  if (authLoading) return null;
+
+  if (!user) {
+    return (
+      <div className="h-screen w-full bg-[#020617] flex flex-col items-center justify-center p-4 overflow-hidden relative">
+         {/* Animated BG */}
+         <div className="absolute top-[-10%] right-[-5%] w-96 h-96 bg-cyan-400/20 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
+         <div className="absolute bottom-[-10%] left-[-5%] w-96 h-96 bg-fuchsia-500/20 rounded-full blur-[120px] pointer-events-none animate-pulse delay-700"></div>
+
+         <motion.div 
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           className="w-full max-w-md glass-card p-12 rounded-[3.5rem] dark:neon-cyan border-black/5 bg-white/5 backdrop-blur-xl relative z-10 flex flex-col items-center shadow-2xl"
+         >
+            <div className="w-20 h-20 bg-slate-900 rounded-3xl flex items-center justify-center neon-cyan mb-8">
+              <School className="w-10 h-10 text-cyan-400" />
+            </div>
+            
+            <h1 className="text-4xl font-black text-white tracking-tighter mb-2 text-center">
+              Kiddy<span className="text-cyan-400">Assess</span>
+            </h1>
+            <p className="text-xs text-slate-400 uppercase tracking-[0.4em] font-black mb-12 text-center">Cloud Professional</p>
+
+            <div className="w-full space-y-4">
+               <button 
+                 onClick={signInWithGoogle}
+                 className="w-full py-4 bg-white hover:bg-slate-50 text-slate-900 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-4 transition-all shadow-xl active:scale-95"
+               >
+                 <LogIn size={20} className="text-cyan-600" />
+                 Masuk dengan Google
+               </button>
+               
+               <div className="p-6 rounded-2xl bg-white/5 border border-white/5 text-center">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
+                    Sinkronisasi otomatis ke cloud.<br />Akses dari mana saja, kapan saja.
+                  </p>
+               </div>
+            </div>
+
+            <p className="mt-12 text-[9px] text-slate-600 font-bold uppercase tracking-widest text-center">
+              © 2024 Ardy Syafii & KiddyAssess Team
+            </p>
+         </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-full font-sans flex flex-col overflow-hidden relative text-main">
@@ -252,7 +341,7 @@ function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex"
+            className="fixed inset-0 z-[70] flex"
           >
             <div 
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
@@ -268,6 +357,8 @@ function App() {
               <OrganismStudentManager
                 students={students}
                 onAddStudent={handleAddStudent}
+                onUpdateStudent={handleUpdateStudent}
+                onDeleteStudent={handleDeleteStudent}
                 onSelectStudent={(s) => {
                   setActiveStudentId(s.id);
                   setIsSidebarOpen(false);
@@ -300,11 +391,23 @@ function App() {
               className="max-w-6xl mx-auto space-y-5 md:scaled-gap-4"
             >
               <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <h1 className="text-3xl md:text-5xl font-black font-display tracking-tight mb-1 md:mb-2 text-slate-900 dark:text-white leading-tight">
-                    Selamat Datang, <span className="text-cyan-500 dark:text-cyan-400">Guru!</span> 👋
-                  </h1>
-                  <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 font-medium italic">KiddyAssess Dashboard Assessment Digital</p>
+                <div className="flex items-center gap-4 md:gap-6">
+                  {user?.photoURL && (
+                    <motion.div 
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="w-16 h-16 md:w-24 md:h-24 rounded-3xl overflow-hidden border-4 border-white/50 dark:border-slate-800 shadow-2xl relative group"
+                    >
+                      <img src={user.photoURL} className="w-full h-full object-cover" alt="Profile" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                    </motion.div>
+                  )}
+                  <div>
+                    <h1 className="text-3xl md:text-5xl font-black font-display tracking-tight mb-1 md:mb-2 text-slate-900 dark:text-white leading-tight">
+                      Selamat Datang, <span className="text-cyan-500 dark:text-cyan-400">{user?.displayName?.split(' ')[0] || "Guru"}!</span> 👋
+                    </h1>
+                    <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 font-medium italic">KiddyAssess Dashboard Assessment Digital</p>
+                  </div>
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
                   <div className="flex-1 md:flex-none glass-card px-3 py-2 md:px-5 md:py-3.5 rounded-2xl md:rounded-3xl flex items-center gap-3 md:gap-4 border-black/5 dark:neon-cyan bg-white/50 dark:bg-slate-900/40">
@@ -494,7 +597,6 @@ function App() {
                       aspect={currentAspect}
                       scores={currentScores}
                       onScoreChange={handleScoreChange}
-                      onBulkScoreChange={(indicatorId, score) => handleBulkScoreChange(currentAspect.id, indicatorId, score)}
                       progress={Math.round((Object.keys(currentScores).length / currentAspect.indicators.length) * 100)}
                       lastSaved={lastSaved}
                       isSaving={isSaving}

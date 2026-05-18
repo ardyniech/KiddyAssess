@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(data) {
+      return isSignedIn() && data.ownerId == request.auth.uid;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Validations ---
+
+    function isValidStudent(data) {
+      return data.keys().hasAll(['id', 'name', 'class', 'semester', 'ownerId', 'updatedAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 200
+        && data.class is string && data.class.size() <= 100
+        && data.semester is string && data.semester.size() <= 50
+        && data.ownerId == request.auth.uid
+        && data.updatedAt == request.time;
+    }
+
+    function isValidAssessment(data) {
+      return data.keys().hasAll(['studentId', 'scores', 'ownerId', 'updatedAt'])
+        && data.studentId is string && data.studentId.size() <= 128
+        && data.scores is map
+        && data.ownerId == request.auth.uid
+        && data.updatedAt == request.time;
+    }
+
+    function isValidSettings(data) {
+      return data.keys().hasAll(['ownerId', 'updatedAt'])
+        && data.ownerId == request.auth.uid
+        && data.updatedAt == request.time
+        && (data.get('name', '') is string && data.get('name', '').size() <= 200)
+        && (data.get('phone', '') is string && data.get('phone', '').size() <= 20);
+    }
+
+    function isValidPhoto(data) {
+      return data.keys().hasAll(['studentId', 'indicatorId', 'url', 'ownerId'])
+        && data.studentId is string && data.studentId.size() <= 128
+        && data.url is string && data.url.size() <= 2048
+        && data.ownerId == request.auth.uid;
+    }
+
+    // --- Collections ---
+
+    match /students/{studentId} {
+      allow get: if isOwner(existing());
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming())
+                    && incoming().id == studentId;
+      allow update: if isOwner(existing()) && isValidStudent(incoming())
+                    && incoming().ownerId == existing().ownerId;
+      allow delete: if isOwner(existing());
+    }
+
+    match /assessments/{studentId} {
+      allow get: if isOwner(existing());
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(studentId) && isValidAssessment(incoming())
+                    && incoming().studentId == studentId;
+      allow update: if isOwner(existing()) && isValidAssessment(incoming())
+                    && incoming().ownerId == existing().ownerId;
+      allow delete: if isOwner(existing());
+    }
+
+    match /settings/{userId} {
+      allow get: if isOwner(existing());
+      allow create: if isSignedIn() && userId == request.auth.uid && isValidSettings(incoming());
+      allow update: if isOwner(existing()) && userId == request.auth.uid && isValidSettings(incoming())
+                    && incoming().ownerId == existing().ownerId;
+    }
+
+    match /photos/{photoId} {
+      allow get: if isOwner(existing());
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(photoId) && isValidPhoto(incoming());
+      allow update: if isOwner(existing()) && isValidPhoto(incoming())
+                    && incoming().ownerId == existing().ownerId;
+      allow delete: if isOwner(existing());
+    }
+  }
+}
