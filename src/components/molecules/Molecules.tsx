@@ -44,26 +44,29 @@ export function MoleculeStudentCard({ name, studentClass, semester, progress, ac
     <div
       onClick={onClick}
       className={cn(
-        "p-4 rounded-2xl border transition-all duration-500 cursor-pointer flex items-center gap-3",
+        "p-2.5 rounded-xl border transition-all duration-500 cursor-pointer flex items-center gap-3",
         active 
-          ? "bg-sky-500/20 border-sky-400/30 shadow-lg shadow-sky-500/10" 
-          : "bg-white/5 border-white/10 hover:bg-white/10 opacity-70 hover:opacity-100"
+          ? "bg-sky-500 border-sky-400 shadow-lg shadow-sky-500/20" 
+          : "glass-card opacity-80 hover:opacity-100 hover:bg-black/5"
       )}
     >
       <div className={cn(
-        "w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0",
-        active ? "bg-sky-400" : "bg-slate-600"
+        "w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-white font-black text-xs md:text-sm shrink-0 shadow-inner",
+        active ? "bg-white/20" : "bg-sky-500 shadow-lg shadow-sky-500/20"
       )}>
         {initials || "??"}
       </div>
       
       <div className="grow overflow-hidden">
-        <div className="text-sm font-semibold truncate text-white">{name}</div>
         <div className={cn(
-          "text-[10px] uppercase tracking-wider font-bold",
-          active ? "text-sky-300" : "text-slate-500"
+          "text-sm md:text-lg font-black truncate",
+          active ? "text-white" : "text-slate-800 dark:text-white"
+        )}>{name}</div>
+        <div className={cn(
+          "text-[10px] md:text-xs uppercase tracking-wider font-bold",
+          active ? "text-white/70" : "text-slate-500"
         )}>
-          {active && "Active • "} Kelas {studentClass}
+          {active && "Aktif • "} Kelas {studentClass}
         </div>
       </div>
     </div>
@@ -89,7 +92,7 @@ export function MoleculeFormInput({ label, value, onChange, placeholder, icon }:
         className={cn(icon ? "pl-11" : "")}
       />
       {icon && (
-        <div className="absolute left-4 top-9 text-white/40">
+        <div className="absolute left-4 top-9 text-slate-400 dark:text-white/40">
           {icon}
         </div>
       )}

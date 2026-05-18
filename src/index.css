@@ -1,28 +1,154 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", sans-serif;
+  --font-sans: var(--font-family), "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-inter: "Inter", sans-serif;
+  --font-outfit: "Outfit", sans-serif;
+  --font-space: "Space Grotesk", sans-serif;
+  --color-brand-primary: var(--color-primary);
+  --color-main: var(--text-main);
+  --color-muted: var(--text-muted);
+  --color-aspect-title: var(--aspect-title);
+  --color-indicator-text: var(--indicator-text);
+  --color-neon-cyan: var(--neon-cyan);
+  --color-neon-pink: var(--neon-pink);
+  --color-neon-emerald: var(--neon-emerald);
+  --color-neon-violet: var(--neon-violet);
+  --color-neon-red: var(--neon-red);
+  --color-neon-amber: var(--neon-amber);
+}
+
+:root {
+  --base-font-size: 16px;
+  --glass-opacity: 0.7;
+  --app-radius: 20px;
+  --color-primary: #38bdf8;
   
-  --color-brand-primary: #38bdf8;
-  --color-brand-secondary: #818cf8;
-  --color-dark-surface: #1e1b4b;
+  /* Layout Scales */
+  --padding-scale: 1;
+  --margin-scale: 1;
+  --card-blur: 24px;
+  --card-opacity: 0.7;
+  
+  /* These will be overridden by ThemeContext */
+  --light-text-main: #0f172a;
+  --light-text-muted: #64748b;
+  --light-aspect-title: #0f172a;
+  --light-indicator-text: #64748b;
+  --dark-text-main: #f8fafc;
+  --dark-text-muted: #94a3b8;
+  --dark-aspect-title: #f8fafc;
+  --dark-indicator-text: #94a3b8;
+
+  /* Dynamic mapping */
+  --text-main: var(--light-text-main);
+  --text-muted: var(--light-text-muted);
+  --aspect-title: var(--light-aspect-title);
+  --indicator-text: var(--light-indicator-text);
+  --bg-gradient-from: #f8fafc;
+  --bg-gradient-via: #f1f5f9;
+  --bg-gradient-to: #f8fafc;
+  --glass-bg: var(--light-card-bg);
+  --glass-border: rgba(0, 0, 0, 0.05);
+  
+  --scrollbar-thumb: #e2e8f0;
+  --scrollbar-thumb-hover: #cbd5e1;
+
+  --neon-cyan: #22d3ee;
+  --neon-pink: #f472b6;
+  --neon-emerald: #34d399;
+  --neon-violet: #a78bfa;
+  --neon-red: #f87171;
+  --neon-amber: #fbbf24;
+}
+
+html {
+  font-size: var(--base-font-size);
+}
+
+.dark {
+  /* Dynamic mapping switch */
+  --text-main: var(--dark-text-main);
+  --text-muted: var(--dark-text-muted);
+  --aspect-title: var(--dark-aspect-title);
+  --indicator-text: var(--dark-indicator-text);
+  
+  --bg-gradient-from: #020617;
+  --bg-gradient-via: #0f172a;
+  --bg-gradient-to: #020617;
+  --glass-bg: var(--dark-card-bg);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --scrollbar-thumb: #334155;
+  --scrollbar-thumb-hover: #475569;
 }
 
 @layer utilities {
+  .neon-cyan {
+    border: 1px solid var(--neon-cyan);
+    box-shadow: 0 0 15px rgba(34, 211, 238, 0.15), inset 0 0 5px rgba(34, 211, 238, 0.1);
+  }
+  .neon-pink {
+    border: 1px solid var(--neon-pink);
+    box-shadow: 0 0 15px rgba(244, 114, 182, 0.15), inset 0 0 5px rgba(244, 114, 182, 0.1);
+  }
+  .neon-emerald {
+    border: 1px solid var(--neon-emerald);
+    box-shadow: 0 0 15px rgba(52, 211, 153, 0.15), inset 0 0 5px rgba(52, 211, 153, 0.1);
+  }
+  .neon-violet {
+    border: 1px solid var(--neon-violet);
+    box-shadow: 0 0 15px rgba(167, 139, 250, 0.15), inset 0 0 5px rgba(167, 139, 250, 0.1);
+  }
+  .neon-red {
+    border: 1px solid var(--neon-red);
+    box-shadow: 0 0 15px rgba(248, 113, 113, 0.15), inset 0 0 5px rgba(248, 113, 113, 0.1);
+  }
+  .neon-amber {
+    border: 1px solid var(--neon-amber);
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.15), inset 0 0 5px rgba(251, 191, 36, 0.1);
+  }
+  
   .glass-card {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+    background-color: color-mix(in srgb, var(--glass-bg), transparent calc(100% - (var(--card-opacity) * 100%)));
+    backdrop-filter: blur(var(--card-blur));
+    border: 1px solid var(--glass-border);
   }
-  .glass-panel {
-    @apply bg-black/20 backdrop-blur-md border border-white/5;
-  }
+
+  .scaled-p-1 { padding: calc(0.25rem * var(--padding-scale)); }
+  .scaled-p-2 { padding: calc(0.5rem * var(--padding-scale)); }
+  .scaled-p-3 { padding: calc(0.75rem * var(--padding-scale)); }
+  .scaled-p-4 { padding: calc(1rem * var(--padding-scale)); }
+  .scaled-p-6 { padding: calc(1.5rem * var(--padding-scale)); }
+  .scaled-p-8 { padding: calc(2rem * var(--padding-scale)); }
+  
+  .scaled-m-1 { margin: calc(0.25rem * var(--margin-scale)); }
+  .scaled-m-2 { margin: calc(0.5rem * var(--margin-scale)); }
+  .scaled-m-4 { margin: calc(1rem * var(--margin-scale)); }
+  .scaled-m-6 { margin: calc(1.5rem * var(--margin-scale)); }
+  .scaled-m-8 { margin: calc(2rem * var(--margin-scale)); }
+  .scaled-gap-4 { gap: calc(1rem * var(--padding-scale)); }
 }
 
-body {
-  @apply antialiased overflow-hidden selection:bg-sky-500/30;
-  background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.05), transparent),
-              radial-gradient(circle at bottom left, rgba(168, 85, 247, 0.05), transparent);
+
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+  
+  body {
+    @apply antialiased overflow-hidden selection:bg-sky-500/30;
+    background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.1), transparent),
+                radial-gradient(circle at bottom left, rgba(168, 85, 247, 0.1), transparent),
+                linear-gradient(to bottom right, var(--bg-gradient-from), var(--bg-gradient-via), var(--bg-gradient-to));
+    color: var(--text-main);
+    min-height: 100vh;
+  }
+
+  /* Ensure text color is inherited and respects theme variables */
+  h1, h2, h3, h4, h5, h6, p, span, label, input, select, textarea {
+    color: inherit;
+  }
 }
 
 .pdf-font-fix {
@@ -56,10 +182,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--scrollbar-thumb);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--scrollbar-thumb-hover);
 }

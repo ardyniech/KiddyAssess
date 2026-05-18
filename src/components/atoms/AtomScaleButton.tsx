@@ -16,10 +16,10 @@ const colors = {
 };
 
 const activeColors = {
-  BB: "bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)] border-red-400 text-white",
-  MB: "bg-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.5)] border-yellow-400 text-white",
-  BSH: "bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)] border-emerald-400 text-white",
-  BSB: "bg-sky-500 shadow-[0_0_15px_rgba(56,189,248,0.5)] border-sky-400 text-white",
+  BB: "bg-red-500 shadow-lg border-red-400 text-white dark:shadow-red-500/40 neon-red",
+  MB: "bg-amber-500 shadow-lg border-amber-400 text-white dark:shadow-amber-500/40 neon-amber",
+  BSH: "bg-emerald-500 shadow-lg border-emerald-400 text-white dark:shadow-emerald-500/40 neon-emerald",
+  BSB: "bg-cyan-500 shadow-lg border-cyan-400 text-white dark:shadow-cyan-500/40 neon-cyan",
 };
 
 export const AtomScaleButton: React.FC<AtomScaleButtonProps> = ({ label, active, onClick, variant }) => {
@@ -28,8 +28,8 @@ export const AtomScaleButton: React.FC<AtomScaleButtonProps> = ({ label, active,
       id={`btn-${variant}-${label}`}
       onClick={onClick}
       className={cn(
-        "flex-1 py-1 px-1.5 md:py-1.5 md:px-2 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black transition-all duration-300 border border-white/5 text-slate-400 backdrop-blur-sm",
-        active ? activeColors[variant] : "bg-white/5 hover:bg-white/10"
+        "flex-1 py-1 md:py-1.5 px-1 rounded-md md:rounded-xl text-[10px] md:text-sm font-black transition-all duration-300 border border-white/5 text-slate-500 dark:text-slate-400 backdrop-blur-sm active:scale-95",
+        active ? activeColors[variant] : "bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10"
       )}
     >
       {label}

@@ -1,82 +1,112 @@
 import { AtomText, AtomBadge, AtomInput } from "../atoms/CommonAtoms";
 import { Aspect, Student, ScoreData, SchoolProfile } from "../../types";
-import { Download, Sparkles, Loader2, FileText, Settings, School, UserCheck, MapPin, Phone, Mail } from "lucide-react";
-import { useState } from "react";
+import { Download, Sparkles, Loader2, FileText, Settings, School, UserCheck, MapPin, Phone, Mail, Upload, Image as ImageIcon, Zap, ZoomIn, ZoomOut, Maximize2, RefreshCw } from "lucide-react";
+import { useState, ChangeEvent, useRef, useEffect, useCallback } from "react";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { motion, AnimatePresence } from "motion/react";
+import { cn } from "../../lib/utils";
+import { generateIndependentNarrative } from "../../services/narrativeService";
+import { db, AssessmentPhoto } from "../../lib/db";
+import { getSchoolProfile } from "../../services/settingsService";
 
 interface OrganismPDFPreviewProps {
   student: Student;
-  aspect: Aspect;
-  scores: ScoreData;
+  aspects: Aspect[];
+  allScores: { [aspectId: string]: ScoreData };
+  globalProgress?: number;
+  onOpenSettings?: () => void;
 }
 
-const DEFAULT_PROFILE: SchoolProfile = {
-  name: "TK TUNAS HARAPAN BANGSA",
-  address: "Jl. Pendidikan No. 123, Menteng, Jakarta Pusat",
-  phone: "021-555-1234",
-  email: "info@tunasharapan.sch.id",
-  principalName: "Hj. Siti Aminah, S.Pd",
-  teacherName: "Ardy Syafii, S.Pd"
-};
-
-export function OrganismPDFPreview({ student, aspect, scores }: OrganismPDFPreviewProps) {
-  const [narrative, setNarrative] = useState<string>("");
-  const [parentAdvice, setParentAdvice] = useState<string>("");
+export function OrganismPDFPreview({ student, aspects, allScores, globalProgress = 0, onOpenSettings }: OrganismPDFPreviewProps) {
+  const [narratives, setNarratives] = useState<{ [aspectId: string]: { narrative: string; advice: string } }>({});
+  const [studentPhotos, setStudentPhotos] = useState<AssessmentPhoto[]>([]);
+  const [zoom, setZoom] = useState(0.8); 
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [profile, setProfile] = useState<SchoolProfile>(DEFAULT_PROFILE);
+  const [profile, setProfile] = useState<SchoolProfile | null>(null);
 
-  const generateNarrative = async () => {
-    setIsGenerating(true);
-    try {
-      const response = await fetch("/api/generate-narrative", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          studentName: student.name,
-          aspectName: aspect.name,
-          indicators: aspect.indicators,
-          scores: scores,
-        }),
-      });
-      const data = await response.json();
-      setNarrative(data.narrative);
-      setParentAdvice(data.parentAdvice);
-    } catch (error) {
-      console.error("Narrative Generation Failed:", error);
-    } finally {
-      setIsGenerating(false);
+  useEffect(() => {
+    async function loadResources() {
+      const photos = await db.photos.where('studentId').equals(student.id).toArray();
+      const schoolP = await getSchoolProfile();
+      setProfile(schoolP);
+      
+      // Convert blobs to base64 for absolute stability with html2canvas/PDF
+      const processedPhotos = await Promise.all(photos.map(async (photo) => {
+        return new Promise<AssessmentPhoto>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve({
+              ...photo,
+              previewUrl: reader.result as string
+            });
+          };
+          reader.readAsDataURL(photo.blob);
+        });
+      }));
+      
+      setStudentPhotos(processedPhotos);
     }
+    loadResources();
+    
+    // Auto-generate narratives if scores exist but narratives are empty and AI is enabled
+    const hasAnyScore = Object.values(allScores).some(scoreMap => Object.keys(scoreMap).length > 0);
+    if (hasAnyScore && Object.keys(narratives).length === 0 && profile?.useAINarrative !== false) {
+        generateAllNarratives();
+    }
+  }, [student.id, allScores, profile?.useAINarrative]);
+
+  const generateAllNarratives = () => {
+    if (profile?.useAINarrative === false) return;
+    setIsGenerating(true);
+    
+    setTimeout(() => {
+      const newNarratives: typeof narratives = {};
+      aspects.forEach(asp => {
+        const scores = allScores[asp.id] || {};
+        if (Object.keys(scores).length > 0) {
+          const result = generateIndependentNarrative(student.name, asp, scores);
+          newNarratives[asp.id] = { narrative: result.narrative, advice: result.parentAdvice };
+        }
+      });
+      setNarratives(newNarratives);
+      setIsGenerating(false);
+    }, 800);
   };
 
   const exportPDF = async () => {
     setIsExporting(true);
-    const element = document.getElementById("pdf-target");
-    if (!element) return;
+    // Use custom F4 dimensions [210, 330] in mm
+    const pdf = new jsPDF("p", "mm", [210, 330]);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
 
     try {
-      // Ensure the element is visible and rendered correctly for canvas
-      const canvas = await html2canvas(element, {
-        scale: 3, // Higher scale for printing
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false
-      });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      
-      const canvasWidth = canvas.width;
-      const canvasHeight = canvas.height;
-      const ratio = canvasWidth / pdfWidth;
-      const finalImgHeight = canvasHeight / ratio;
+      const aspectsToExport = aspects.slice(0, 3);
+      for (let i = 0; i < aspectsToExport.length; i++) {
+        const aspect = aspectsToExport[i];
+        const element = document.getElementById(`pdf-page-${aspect.id}`);
+        if (!element) continue;
 
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, Math.min(finalImgHeight, pdfHeight));
-      pdf.save(`Rapor_${student.name}_${aspect.name.replace(/\s+/g, '_')}.pdf`);
+        const canvas = await html2canvas(element, {
+          scale: 3, // Very high resolution for professional print
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          logging: false,
+          imageTimeout: 0,
+          allowTaint: true,
+        });
+        
+        const imgData = canvas.toDataURL("image/png");
+        
+        if (i > 0) pdf.addPage([210, 330]);
+        // Cover full page width and height for ready-to-print result
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      }
+      
+      pdf.save(`Raport_F4_${student.name}.pdf`);
     } catch (error) {
       console.error("PDF Export Failed:", error);
     } finally {
@@ -84,219 +114,321 @@ export function OrganismPDFPreview({ student, aspect, scores }: OrganismPDFPrevi
     }
   };
 
-  const completedCount = Object.keys(scores).length;
+  const totalPossibleIndicators = aspects.reduce((acc, curr) => acc + curr.indicators.length, 0);
+  const totalCompletedIndicators = aspects.reduce((acc, curr) => {
+    return acc + Object.keys(allScores[curr.id] || {}).length;
+  }, 0);
+
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, 1.5));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.1, 0.3));
+  
+  const fitToWidth = useCallback(() => {
+    if (containerRef.current) {
+      const containerWidth = containerRef.current.offsetWidth - 48; // Padding
+      const pdfWidthPx = 210 * 3.78; // 210mm to px (~794px)
+      const newZoom = Math.min(containerWidth / pdfWidthPx, 1);
+      setZoom(newZoom);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Initial fit
+    const timer = setTimeout(fitToWidth, 300);
+    
+    const handleResize = () => fitToWidth();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timer);
+    };
+  }, [fitToWidth]);
+
+  if (!profile) return (
+    <div className="flex flex-col items-center justify-center p-20 gap-4">
+        <Loader2 className="animate-spin text-sky-500" size={40} />
+        <AtomText variant="body">Mempersiapkan Lembar Raport...</AtomText>
+    </div>
+  );
+
+  const aspectsToRender = aspects.slice(0, 3);
 
   return (
-    <div className="max-w-7xl mx-auto py-8 space-y-8 px-4">
+    <div className="max-w-7xl mx-auto py-1 md:py-1.5 space-y-1.5 md:space-y-4 px-1.5 md:px-2">
       {/* Header & Main Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 glass-card p-8 rounded-[2.5rem]">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 md:gap-3 glass-card p-3 md:p-5 rounded-2xl md:rounded-[2rem] border-black/5">
         <div>
-          <AtomText variant="h2" className="font-display uppercase tracking-tight text-3xl">Pusat Laporan & Narasi</AtomText>
-          <div className="flex items-center gap-2 mt-2 opacity-60">
-            <School className="w-4 h-4" />
-            <AtomText variant="body" className="font-medium text-sm">{profile.name}</AtomText>
+          <div className="flex items-center gap-3 mb-1">
+             <AtomText variant="h2" className="font-black tracking-tight text-2xl md:text-3xl text-slate-900 dark:text-white">Review Raport {aspectsToRender.length} Halaman</AtomText>
+             <div className="bg-sky-500/10 px-2 py-1 rounded-lg border border-sky-500/20">
+                <span className="text-xs md:text-sm font-black text-sky-500">{Math.round(globalProgress)}%</span>
+             </div>
+          </div>
+          <div className="flex items-center gap-2 opacity-70">
+            <School className="w-4 h-4 text-sky-500" />
+            <AtomText variant="body" className="font-bold text-xs md:text-sm text-slate-600 dark:text-slate-300">{profile.name} • {student.name}</AtomText>
           </div>
         </div>
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-wrap gap-2">
+          {/* Zoom Controls */}
+          <div className="flex items-center bg-black/5 dark:bg-white/5 rounded-xl px-2 gap-1 mr-2 border border-black/5">
+            <button 
+              onClick={handleZoomOut} 
+              className="p-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg text-slate-600 dark:text-slate-300 transition-colors"
+              title="Zoom Keluar"
+            >
+              <ZoomOut size={16} />
+            </button>
+            <div className="min-w-[45px] text-center">
+              <span className="text-[10px] font-black text-slate-500">
+                {Math.round(zoom * 100)}%
+              </span>
+            </div>
+            <button 
+              onClick={handleZoomIn} 
+              className="p-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg text-slate-600 dark:text-slate-300 transition-colors"
+              title="Zoom Masuk"
+            >
+              <ZoomIn size={16} />
+            </button>
+            <div className="w-[1px] h-4 bg-black/10 dark:bg-white/10 mx-1" />
+            <button 
+              onClick={fitToWidth} 
+              className="p-2 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg text-slate-600 dark:text-slate-300 transition-colors"
+              title="Fit to Card"
+            >
+              <Maximize2 size={16} />
+            </button>
+          </div>
+          
           <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-xs font-bold uppercase tracking-widest transition-all border border-white/10"
+            onClick={onOpenSettings}
+            className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2.5 glass-card hover:bg-black/10 dark:hover:bg-white/10 rounded-xl text-sm font-bold tracking-tight transition-all border-black/5"
           >
-            <Settings className={showSettings ? "animate-spin" : ""} size={16} />
-            Edit Profil Sekolah
+            <Settings className="text-slate-600 dark:text-white" size={16} />
+            <span className="text-slate-800 dark:text-white">Setting Kop</span>
           </button>
-          <button
-            onClick={generateNarrative}
-            disabled={isGenerating || completedCount < 1}
-            className="flex items-center gap-3 px-8 py-3.5 bg-sky-500 hover:bg-sky-400 text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-sky-500/20 disabled:opacity-50 disabled:grayscale transition-all active:scale-95"
-          >
-            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            Hasilkan Report (AI)
-          </button>
+          {profile?.useAINarrative !== false && (
+            <button
+              onClick={generateAllNarratives}
+              disabled={isGenerating || totalCompletedIndicators < 1}
+              className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-sky-500 hover:bg-sky-400 text-white rounded-xl text-sm font-black tracking-tight shadow-xl shadow-sky-500/20 disabled:opacity-50 transition-all active:scale-95"
+            >
+              {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              Refresh Narasi
+            </button>
+          )}
           <button
             onClick={exportPDF}
-            disabled={!narrative || isExporting}
-            className="flex items-center gap-3 px-8 py-3.5 bg-white text-slate-900 rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl disabled:opacity-50 transition-all active:scale-95 hover:bg-slate-100"
+            disabled={isExporting || totalCompletedIndicators < 1}
+            className="w-full lg:w-auto flex items-center justify-center gap-2 px-8 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-sm font-black tracking-tight shadow-2xl disabled:opacity-50 transition-all active:scale-95 hover:bg-slate-800 dark:hover:bg-slate-100"
           >
              {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            Cetak PDF
+            Ekspor Semua Halaman
           </button>
         </div>
       </div>
 
-      {/* Settings Overlay / Expandable */}
-      <AnimatePresence>
-        {showSettings && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden glass-card rounded-[2rem] p-8 border-sky-500/30"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="space-y-4">
-                <AtomText variant="h3" className="text-sky-400 flex items-center gap-2 text-sm">
-                  <School size={16} /> Identitas Sekolah
-                </AtomText>
-                <AtomInput label="Nama Sekolah" value={profile.name} onChange={e => setProfile({...profile, name: e.target.value})} />
-                <AtomInput label="Alamat" value={profile.address} onChange={e => setProfile({...profile, address: e.target.value})} />
+      <div ref={containerRef} className="flex flex-col gap-8 md:gap-16 items-center w-full py-8 overflow-x-hidden">
+        {aspectsToRender.map((aspect) => {
+          const content = narratives[aspect.id] || { narrative: "", advice: "" };
+          const pWidth = 210; // mm
+          const pHeight = 330; // mm (F4 Size)
+          
+          return (
+            <div key={aspect.id} className="relative group w-full flex flex-col items-center">
+              <div className="mb-4 flex items-center gap-4">
+                 <div className="px-4 py-1.5 bg-sky-500 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg">Lembar {aspects.indexOf(aspect) + 1}: {aspect.name}</div>
               </div>
-              <div className="space-y-4">
-                <AtomText variant="h3" className="text-sky-400 flex items-center gap-2 text-sm">
-                  <Phone size={16} /> Kontak
-                </AtomText>
-                <AtomInput label="Telepon" value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} />
-                <AtomInput label="Email" value={profile.email} onChange={e => setProfile({...profile, email: e.target.value})} />
-              </div>
-              <div className="space-y-4">
-                <AtomText variant="h3" className="text-sky-400 flex items-center gap-2 text-sm">
-                  <UserCheck size={16} /> Tanda Tangan
-                </AtomText>
-                <AtomInput label="Kepala Sekolah" value={profile.principalName} onChange={e => setProfile({...profile, principalName: e.target.value})} />
-                <AtomInput label="Guru Kelas" value={profile.teacherName} onChange={e => setProfile({...profile, teacherName: e.target.value})} />
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        {/* Editor Area */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-black/30 p-8 rounded-[2.5rem] border border-white/5 backdrop-blur-xl flex flex-col gap-6">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-sky-500/20 p-2 rounded-xl">
-                  <FileText className="w-5 h-5 text-sky-400" />
-                </div>
-                <AtomText variant="h3" className="font-display text-lg">Narasi Perkembangan</AtomText>
-              </div>
-              <textarea
-                value={narrative}
-                onChange={(e) => setNarrative(e.target.value)}
-                placeholder="Narasi akan muncul di sini setelah generate..."
-                className="w-full h-40 bg-white/5 border border-white/10 rounded-2xl p-4 text-white/80 text-sm leading-relaxed focus:outline-none resize-none custom-scrollbar focus:ring-1 focus:ring-sky-500/50"
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-purple-500/20 p-2 rounded-xl">
-                  <Sparkles className="w-5 h-5 text-purple-400" />
-                </div>
-                <AtomText variant="h3" className="font-display text-lg">Parent Advice (Saran)</AtomText>
-              </div>
-              <textarea
-                value={parentAdvice}
-                onChange={(e) => setParentAdvice(e.target.value)}
-                placeholder="Saran untuk orang tua di rumah..."
-                className="w-full h-32 bg-white/5 border border-white/10 rounded-2xl p-4 text-white/80 text-sm italic leading-relaxed focus:outline-none resize-none custom-scrollbar focus:ring-1 focus:ring-purple-500/50"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* PDF Design Preview Container */}
-        <div className="lg:col-span-3">
-           <div className="bg-white/5 rounded-[2.5rem] p-4 border border-white/10 overflow-hidden relative group">
-              <div className="absolute inset-0 bg-gradient-to-br from-sky-500/10 to-transparent pointer-events-none" />
               
-              {/* This is the actual target for PDF export */}
-              <div className="bg-white p-12 lg:p-16 shadow-2xl rounded-[2px] w-full mx-auto pdf-font-fix origin-top transition-transform duration-500" id="pdf-target" style={{ width: '210mm', minHeight: '297mm', color: '#1e293b' }}>
-              
-                {/* PROFESSIONAL KOP SURAT */}
-                <div className="flex items-center gap-8 border-b-4 border-double border-slate-900 pb-6 mb-10">
-                  <div className="w-24 h-24 bg-slate-100 rounded-lg flex items-center justify-center border-2 border-slate-200">
-                      <School size={48} className="text-slate-300" />
-                  </div>
-                  <div className="grow text-center pr-12">
-                      <h1 className="text-2xl font-black uppercase tracking-tight" style={{ color: '#0f172a' }}>{profile.name}</h1>
-                      <p className="text-[11px] font-bold mt-1 text-slate-500 uppercase tracking-widest">{profile.address}</p>
-                      <div className="flex justify-center gap-4 mt-2 text-[10px] font-medium text-slate-400">
-                        <span className="flex items-center gap-1"><Phone size={10} /> {profile.phone}</span>
-                        <span className="flex items-center gap-1"><Mail size={10} /> {profile.email}</span>
-                      </div>
-                  </div>
-                </div>
-
-                <div className="text-center mb-10">
-                  <h2 className="text-xl font-black uppercase tracking-[0.2em]" style={{ color: '#0f172a' }}>Laporan Perkembangan Harian</h2>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.4em] mt-1 text-sky-600">Learning Insights v2.0</p>
-                </div>
-
-                {/* Identity Table */}
-                <div className="bg-slate-50 p-6 rounded-lg grid grid-cols-2 gap-y-3 mb-10 text-[11px] font-bold border border-slate-100">
-                  <div className="flex gap-2">
-                    <div className="w-1.5 h-1.5 bg-sky-500 rounded-full mt-1.5 shrink-0" />
-                    <span className="uppercase text-slate-400 tracking-widest">Nama Murid</span>
-                  </div>
-                  <div className="uppercase tracking-wider" style={{ color: '#0f172a' }}>: {student.name}</div>
-                  
-                  <div className="flex gap-2">
-                    <div className="w-1.5 h-1.5 bg-slate-300 rounded-full mt-1.5 shrink-0" />
-                    <span className="uppercase text-slate-400 tracking-widest">Kelas / SMT</span>
-                  </div>
-                  <div className="uppercase tracking-wider" style={{ color: '#0f172a' }}>: {student.class} / Semester {student.semester}</div>
-
-                  <div className="flex gap-2">
-                    <div className="w-1.5 h-1.5 bg-slate-300 rounded-full mt-1.5 shrink-0" />
-                    <span className="uppercase text-slate-400 tracking-widest">Aspek Fokus</span>
-                  </div>
-                  <div className="uppercase tracking-wider" style={{ color: '#0f172a' }}>: {aspect.name}</div>
-                </div>
-
-                {/* Assessment Content */}
-                <div className="mb-10 min-h-[300px]">
-                  <div className="flex items-center gap-3 mb-4">
-                      <FileText size={16} className="text-slate-900" />
-                      <h3 className="text-xs font-black uppercase tracking-[0.1em] border-b-2 border-slate-900 pb-1">Deskripsi Narasi Perkembangan</h3>
-                  </div>
-                  <p className="text-[13px] leading-relaxed text-justify font-medium px-4 border-l-2 border-slate-100" style={{ color: '#334155' }}>
-                    {narrative || "Assessment notes are currently being processed. Please generate the report to see the full analysis here."}
-                  </p>
-                </div>
-
-                {/* Parent Advice Section */}
-                <div className="mb-14 p-8 bg-sky-50/50 rounded-2xl border-2 border-dashed border-sky-100 relative">
-                  <div className="absolute -top-3 left-6 bg-white px-3 flex items-center gap-2">
-                      <Sparkles size={14} className="text-sky-500" />
-                      <span className="text-[10px] font-black uppercase text-sky-600 tracking-widest">Saran Untuk Orang Tua</span>
-                  </div>
-                  <p className="text-[12px] leading-relaxed italic font-semibold text-slate-600">
-                      {parentAdvice || "Tips for home-based support will appear here once the report is generated."}
-                  </p>
-                </div>
-
-                {/* Digital Signatures Area */}
-                <div className="mt-auto pt-10 grid grid-cols-2 gap-32 text-center">
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-16 text-slate-400">Mengetahui,<br/>Orang Tua / Wali</p>
-                    <p className="text-[11px] font-black text-slate-900 border-t-2 border-slate-100 pt-2">( ........................................ )</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-4 text-slate-400">Jakarta, {new Date().toLocaleDateString('id-ID')}</p>
-                    <div className="flex flex-col gap-10">
-                        <div>
-                          <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-12 text-slate-400">Guru Kelas</p>
-                          <p className="text-[11px] font-black text-slate-900 underline underline-offset-4 decoration-sky-300">{profile.teacherName}</p>
+              <div 
+                className="w-full glass-card rounded-3xl md:rounded-[2.5rem] p-4 relative flex justify-center custom-scrollbar overflow-hidden"
+                style={{ 
+                  height: narratives[aspect.id] ? `${pHeight * zoom + 120}mm` : 'auto',
+                  transition: 'height 0.3s ease'
+                }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-sky-500/10 to-transparent pointer-events-none" />
+                
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 py-20 md:py-24">
+                  <div 
+                    className="bg-white p-10 md:p-14 lg:p-16 shadow-2xl rounded-[2px] shrink-0 pdf-font-fix shadow-black/20" 
+                    id={`pdf-page-${aspect.id}`} 
+                    style={{ 
+                      width: `${pWidth}mm`, 
+                      minHeight: `${pHeight}mm`, 
+                      color: '#1e293b',
+                      transform: `scale(${zoom})`,
+                      transformOrigin: 'top center',
+                      transition: 'transform 0.3s ease'
+                    }}
+                  >
+                
+                  {/* PROFESSIONAL KOP SURAT */}
+                  <div className="flex items-center gap-4 md:gap-8 border-b-4 border-double border-slate-900 pb-4 md:pb-6 mb-6 md:mb-10">
+                    <div className="w-16 h-16 md:w-24 md:h-24 flex items-center justify-center shrink-0">
+                      {profile.logoUrl ? (
+                        <img src={profile.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                      ) : (
+                        <div className="w-full h-full bg-slate-100 rounded-lg flex items-center justify-center border-2 border-slate-200">
+                          <School size={48} className="text-slate-300" />
                         </div>
-                        <div className="mt-8 border-t-2 border-double border-slate-100 pt-8">
-                          <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-12 text-slate-400">Kepala Sekolah</p>
-                          <p className="text-[11px] font-black text-slate-900">{profile.principalName}</p>
-                          <p className="text-[8px] font-bold text-slate-400 mt-1">NIP. ................................</p>
+                      )}
+                    </div>
+                    <div className="grow text-center pr-24">
+                        <h1 className="text-2xl font-black uppercase tracking-tight" style={{ color: '#0f172a' }}>{profile.name}</h1>
+                        <p className="text-[11px] font-bold mt-1 text-slate-500 uppercase tracking-widest">{profile.address}</p>
+                        <div className="flex justify-center gap-4 mt-2 text-[10px] font-medium text-slate-400">
+                          <span className="flex items-center gap-1"><Phone size={10} /> {profile.phone}</span>
+                          <span className="flex items-center gap-1"><Mail size={10} /> {profile.email}</span>
                         </div>
                     </div>
                   </div>
-                </div>
+  
+                  <div className="text-center mb-10">
+                    <h2 className="text-xl font-black uppercase tracking-[0.2em]" style={{ color: '#0f172a' }}>Laporan Perkembangan Anak</h2>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.4em] mt-1 text-sky-600">Aspek: {aspect.name}</p>
+                  </div>
+  
+                  {/* Identity Table */}
+                  <div className="bg-slate-50 p-6 rounded-lg grid grid-cols-2 gap-y-3 mb-10 text-[11px] font-bold border border-slate-100">
+                    <div className="flex gap-2">
+                      <div className="w-1.5 h-1.5 bg-sky-500 rounded-full mt-1.5 shrink-0" />
+                      <span className="uppercase text-slate-400 tracking-widest">Nama Murid</span>
+                    </div>
+                    <div className="uppercase tracking-wider" style={{ color: '#0f172a' }}>: {student.name}</div>
+                    
+                    <div className="flex gap-2">
+                      <div className="w-1.5 h-1.5 bg-slate-300 rounded-full mt-1.5 shrink-0" />
+                      <span className="uppercase text-slate-400 tracking-widest">Kelas / SMT</span>
+                    </div>
+                    <div className="uppercase tracking-wider" style={{ color: '#0f172a' }}>: {student.class} / Semester {student.semester}</div>
+                  </div>
+  
+                  {/* Assessment Content */}
+                  <div className="mb-6 min-h-[350px]">
+                    <div className="flex items-center gap-3 mb-4">
+                        <FileText size={16} className="text-slate-900" />
+                        <h3 className="text-xs font-black uppercase tracking-[0.1em] border-b-2 border-slate-900 pb-1">Ulasan Capaian {aspect.name}</h3>
+                    </div>
+                    <div className="text-[13px] leading-[1.8] text-justify font-medium px-4 border-l-2 border-slate-200 whitespace-pre-wrap" style={{ color: '#334155', tabSize: 4 }}>
+                      {content.narrative || "Sedang memproses narasi penilaian... Mohon berikan 1 indikator skor terlebih dahulu jika belum."}
+                    </div>
+                  </div>
 
-                <div className="mt-12 pt-8 border-t text-[7px] text-center font-black uppercase tracking-[0.5em] text-slate-200">
-                  Verified Security Seal • KiddyAssess Engine • Processed: {new Date().toLocaleTimeString()}
+                  {/* Photo Documentation Section */}
+                  {profile.showPhotos !== false && (
+                    <div className="mb-10">
+                      <div className="flex items-center gap-3 mb-4">
+                          <ImageIcon size={16} className="text-slate-900" />
+                          <h3 className="text-xs font-black uppercase tracking-[0.1em] border-b-2 border-slate-900 pb-1">Dokumentasi Kegiatan</h3>
+                      </div>
+                      <div className="grid grid-cols-3 gap-3 h-[130px]">
+                          {(() => {
+                            const aspectPhotos = studentPhotos.filter(p => p.aspectId === aspect.id).slice(0, 3);
+                            return [0, 1, 2].map((idx) => {
+                              const photo = aspectPhotos[idx];
+                              return (
+                                <div key={idx} className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-2 overflow-hidden relative">
+                                  {photo ? (
+                                    <img 
+                                      src={photo.previewUrl} 
+                                      className="w-full h-full object-cover" 
+                                      alt="Documentation"
+                                      crossOrigin="anonymous"
+                                      referrerPolicy="no-referrer"
+                                      style={{ imageRendering: 'auto' }}
+                                    />
+                                  ) : (
+                                    <>
+                                      <ImageIcon size={24} className="text-slate-200" />
+                                      <span className="text-[8px] font-black uppercase text-slate-300 tracking-tighter">Foto {idx + 1}</span>
+                                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/5 to-transparent" />
+                                    </>
+                                  )}
+                                </div>
+                              );
+                            });
+                          })()}
+                      </div>
+                    </div>
+                  )}
+  
+                  {/* Parent Advice Section */}
+                  <div className="mb-14 p-8 bg-sky-50/50 rounded-2xl border-2 border-dotted border-sky-200 relative">
+                    <div className="absolute -top-3 left-6 bg-white px-3 flex items-center gap-2">
+                        <Sparkles size={14} className="text-sky-500" />
+                        <span className="text-[10px] font-black uppercase text-sky-600 tracking-widest">Pesan Edukasi</span>
+                    </div>
+                    <p className="text-[12px] leading-relaxed italic font-semibold text-slate-600">
+                        {content.advice || "Saran pola asuh akan muncul setelah narasi diproses."}
+                    </p>
+                  </div>
+  
+                  {/* Digital Signatures Area */}
+                  {profile.showSignature !== false && (
+                    <div className="mt-auto pt-10">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-10 text-right text-slate-400">
+                        {profile.address.split(",")[1] || "Jakarta"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                      </p>
+                      
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        {/* 1. Kepala Sekolah */}
+                        <div className="flex flex-col justify-between min-h-[140px]">
+                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 leading-relaxed">
+                            Mengetahui,<br/>Kepala Sekolah
+                          </p>
+                          <div className="pt-4">
+                            <p className="text-[11px] font-black text-slate-900 underline underline-offset-4 decoration-slate-200">
+                              {profile.principalName || "........................................"}
+                            </p>
+                            <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-widest">NIP. .........................</p>
+                          </div>
+                        </div>
+
+                        {/* 2. Wali Murid */}
+                        <div className="flex flex-col justify-between min-h-[140px]">
+                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 leading-relaxed">
+                            Tanda Tangan,<br/>Orang Tua / Wali
+                          </p>
+                          <div className="pt-4">
+                            <p className="text-[11px] font-black text-slate-400">( ........................................ )</p>
+                            <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Wali Murid</p>
+                          </div>
+                        </div>
+
+                        {/* 3. Guru Kelas */}
+                        <div className="flex flex-col justify-between min-h-[140px]">
+                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 leading-relaxed">
+                            Disusun Oleh,<br/>Guru Kelas
+                          </p>
+                          <div className="pt-4">
+                            <p className="text-[11px] font-black text-slate-900 underline underline-offset-4 decoration-sky-300">
+                              {profile.teacherName || "........................................"}
+                            </p>
+                            <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Pendidik</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {profile.reportNote && (
+                    <div className="mt-8 text-[9px] text-center font-medium italic text-slate-400">
+                      {profile.reportNote}
+                    </div>
+                  )}
+  
+                  <div className="mt-12 pt-8 border-t text-[7px] text-center font-black uppercase tracking-[0.5em] text-slate-200">
+                    Official Academic Record • KiddyAssess v2.5 • Page {aspects.indexOf(aspect) + 1} of {aspects.length}
+                  </div>
                 </div>
               </div>
-              <div className="mt-8 text-center text-slate-500 text-xs italic">
-                Pratinjau Layout Desktop (Skala PDF dapat berbeda saat diunduh untuk optimalisasi cetak)
-              </div>
-           </div>
+            </div>
+          </div>
+        );
+      })}
+        <div className="text-center text-slate-500 text-xs italic pb-20">
+          Akhir dari Pratinjau Raport. Pastikan semua lembar telah terisi narasi sebelum ekspor.
         </div>
       </div>
     </div>

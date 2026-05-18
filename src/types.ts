@@ -15,6 +15,11 @@ export interface SchoolProfile {
   principalName: string;
   teacherName: string;
   logoUrl?: string;
+  showSignature?: boolean;
+  showPhotos?: boolean;
+  useAINarrative?: boolean; // New setting
+  enableCloudSync?: boolean; // New setting
+  reportNote?: string;
 }
 
 export interface Indicator {
