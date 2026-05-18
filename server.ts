@@ -52,7 +52,7 @@ async function startServer() {
       `;
 
       const result = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.1-flash-lite", 
         contents: prompt,
         config: {
           responseMimeType: "application/json"
@@ -65,6 +65,12 @@ async function startServer() {
       res.json(data);
     } catch (error: any) {
       console.error("Gemini Error:", error);
+      
+      const errorMessage = error.message || "";
+      if (errorMessage.includes("429") || errorMessage.includes("Quota") || errorMessage.includes("quota") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+        return res.status(429).json({ error: "Quota gratis harian Gemini AI telah habis. Klik opsi Offline/System Narrative jika tidak ingin menunggu." });
+      }
+
       res.status(500).json({ error: error.message });
     }
   });

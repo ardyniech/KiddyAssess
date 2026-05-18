@@ -14,7 +14,7 @@ interface OrganismIndikatorListProps {
   onScoreChange: (indicatorId: string, score: AssessmentScale) => void;
   progress?: number;
   lastSaved?: string | null;
-  isSaving?: boolean;
+  syncStatus?: string | null;
 }
 
 export function OrganismIndikatorList({ 
@@ -24,7 +24,7 @@ export function OrganismIndikatorList({
   onScoreChange, 
   progress = 0, 
   lastSaved, 
-  isSaving 
+  syncStatus 
 }: OrganismIndikatorListProps) {
 
   return (
@@ -52,9 +52,9 @@ export function OrganismIndikatorList({
                <div className="text-xs md:text-sm font-bold text-slate-500 dark:text-slate-400 tracking-tight mb-0.5">Status Lokal</div>
                <div className={cn(
                  "text-[10px] md:text-xs font-black uppercase tracking-widest",
-                 isSaving ? "text-amber-500 animate-pulse" : "text-emerald-500"
+                 syncStatus ? "text-amber-500 animate-pulse" : "text-emerald-500"
                )}>
-                 {isSaving ? "Sinkronisasi..." : (lastSaved ? `Tersimpan ${lastSaved}` : "Siap")}
+                 {syncStatus ? syncStatus : (lastSaved ? `Tersimpan ${lastSaved}` : "Siap")}
                </div>
             </div>
           </div>
@@ -89,7 +89,7 @@ export function OrganismIndikatorList({
                   <div className="bg-black/5 dark:bg-white/5 w-6 h-6 md:w-10 md:h-10 rounded-xl flex items-center justify-center shrink-0 border border-black/5 dark:border-white/5">
                     <span className="text-[10px] md:text-xs font-black text-slate-500 dark:text-slate-400">{String(index + 1).padStart(2, '0')}</span>
                   </div>
-                  <AtomText variant="h3" className="text-sm md:text-lg font-medium leading-relaxed text-indicator-text">
+                  <AtomText variant="h3" className="text-[var(--card-font-size)] md:text-lg font-medium leading-relaxed text-[var(--card-font-color)]">
                     {indicator.text}
                   </AtomText>
                 </div>

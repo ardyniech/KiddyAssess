@@ -217,6 +217,25 @@ export const OrganismAppSettings: React.FC<{ isOpen: boolean; onClose: () => voi
                         </section>
 
                         <section className="space-y-4">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-muted block ml-1">Card Font Settings ({theme.layout.cardFontSize}px)</span>
+                            <div className="p-5 glass-panel rounded-3xl border-black/5 space-y-4">
+                                <input 
+                                    type="range" 
+                                    min="10" 
+                                    max="24" 
+                                    step="1" 
+                                    value={theme.layout.cardFontSize} 
+                                    onChange={e => updateTheme({ layout: { ...theme.layout, cardFontSize: parseInt(e.target.value) } })}
+                                    className="w-full accent-sky-500"
+                                />
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold opacity-60">Warna Teks Card</span>
+                                    <input type="color" value={theme.layout.cardFontColor} onChange={e => updateTheme({ layout: { ...theme.layout, cardFontColor: e.target.value } })} className="w-8 h-8 rounded-lg cursor-pointer border-none" />
+                                </div>
+                            </div>
+                        </section>
+
+                        <section className="space-y-4">
                             <span className="text-[10px] font-black uppercase tracking-widest text-muted block ml-1">Card Blur Intensity ({theme.layout.cardBlur}px)</span>
                             <div className="p-5 glass-panel rounded-3xl border-black/5">
                                 <input 

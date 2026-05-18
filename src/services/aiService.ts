@@ -18,10 +18,14 @@ export const generateStudentNarrative = async (
       body: JSON.stringify({ studentName, aspectName, indicators, scores })
     });
     
-    if (!response.ok) throw new Error('AI generation failed');
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'AI generation failed');
+    }
+    
     return await response.json();
   } catch (err) {
     console.error("AI Error:", err);
-    return null;
+    throw err; // re-throw so the component knows it failed
   }
 };

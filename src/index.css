@@ -157,6 +157,26 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* PDF Compatibility Layer to prevent html2canvas oklch errors */
+.pdf-compat {
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-700: #334155;
+  --color-slate-900: #0f172a;
+  --color-sky-50: #f0f9ff;
+  --color-sky-200: #bae6fd;
+  --color-sky-500: #0ea5e9;
+  --color-sky-600: #0284c7;
+}
+
+.pdf-compat * {
+  border-color: inherit;
+}
+
 @media (max-width: 1024px) {
   #pdf-target {
     transform: scale(0.6);

@@ -1,7 +1,9 @@
-import { Camera, Image as ImageIcon, Trash2, X } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import { Camera, Image as ImageIcon, Trash2, X, Edit2 } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
 import { db, savePhoto, deletePhoto, AssessmentPhoto } from "../../lib/db";
 import { cn } from "../../lib/utils";
+
+import imageCompression from 'browser-image-compression';
 
 interface MoleculePhotoUploaderProps {
   studentId: string;
@@ -12,6 +14,8 @@ interface MoleculePhotoUploaderProps {
 export function MoleculePhotoUploader({ studentId, aspectId, indicatorId }: MoleculePhotoUploaderProps) {
   const [photos, setPhotos] = useState<AssessmentPhoto[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [editingPhotoId, setEditingPhotoId] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function loadPhotos() {
@@ -20,10 +24,25 @@ export function MoleculePhotoUploader({ studentId, aspectId, indicatorId }: Mole
         .equals([studentId, aspectId, indicatorId])
         .toArray();
       
-      // Regenerate preview URLs as Object URLs from stored blobs since they are transient
-      const photosWithUrls = allPhotos.map(photo => ({
-        ...photo,
-        previewUrl: URL.createObjectURL(photo.blob)
+      const photosWithUrls = await Promise.all(allPhotos.map(async (photo) => {
+        let previewStr = photo.previewUrl;
+        // Fix for iOS blob issues and old blob URLs
+        if (!previewStr || !previewStr.startsWith('data:')) {
+            try {
+                previewStr = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(photo.blob);
+                });
+            } catch (e) {
+                console.error("Failed to read blob", e);
+            }
+        }
+        return {
+            ...photo,
+            previewUrl: previewStr || ""
+        };
       }));
       
       setPhotos(photosWithUrls);
@@ -37,14 +56,21 @@ export function MoleculePhotoUploader({ studentId, aspectId, indicatorId }: Mole
 
     setIsUploading(true);
     try {
-        // Limit to 3 photos as requested "max 3 foto secara horizontal"
-        if (photos.length >= 3) {
+        if (!editingPhotoId && photos.length >= 3) {
             alert("Maksimal 3 foto per indikator");
             return;
         }
 
-        // Convert to Blob and store
-        await savePhoto(studentId, aspectId, indicatorId, file);
+        const options = {
+          maxSizeMB: 1, // Max 1MB size for good quality print but small size
+          maxWidthOrHeight: 1280,
+          useWebWorker: true,
+          fileType: 'image/jpeg'
+        };
+        const compressedFile = await imageCompression(file, options);
+
+        // Updated savePhoto call to support replacements
+        await savePhoto(studentId, aspectId, indicatorId, compressedFile);
         
         // Refresh
         const updated = await db.photos
@@ -52,12 +78,23 @@ export function MoleculePhotoUploader({ studentId, aspectId, indicatorId }: Mole
             .equals([studentId, aspectId, indicatorId])
             .toArray();
             
-        const updatedWithUrls = updated.map(p => ({
-            ...p,
-            previewUrl: URL.createObjectURL(p.blob)
+        const updatedWithUrls = await Promise.all(updated.map(async (p) => {
+            let pStr = p.previewUrl;
+            if (!pStr || !pStr.startsWith('data:')) {
+                pStr = await new Promise<string>((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.readAsDataURL(p.blob);
+                });
+            }
+            return {
+                ...p,
+                previewUrl: pStr
+            };
         }));
         
         setPhotos(updatedWithUrls);
+        setEditingPhotoId(null);
     } catch (err) {
         console.error("Upload failed", err);
     } finally {
@@ -72,9 +109,16 @@ export function MoleculePhotoUploader({ studentId, aspectId, indicatorId }: Mole
 
   return (
     <div className="mt-3 space-y-2">
+      <input 
+        type="file" 
+        accept="image/*" 
+        className="hidden" 
+        ref={fileInputRef}
+        onChange={handleFileChange} 
+        disabled={isUploading}
+      />
       <div className="flex items-center gap-2 mb-1">
          <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Dokumentasi</span>
-         {/* Badge for photo count */}
          {photos.length > 0 && (
              <span className="text-[10px] font-black text-cyan-500 bg-cyan-500/10 px-1.5 py-0.5 rounded-full">{photos.length}/3</span>
          )}
@@ -88,6 +132,15 @@ export function MoleculePhotoUploader({ studentId, aspectId, indicatorId }: Mole
               alt="Evidence" 
               className="w-full h-full object-cover rounded-lg border border-black/5 dark:border-cyan-500/20"
             />
+            <button 
+              onClick={() => {
+                  setEditingPhotoId(photo.id!);
+                  fileInputRef.current?.click();
+              }}
+              className="absolute -top-1.5 -left-1.5 bg-cyan-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"
+            >
+              <Edit2 size={10} />
+            </button>
             <button 
               onClick={() => handleRemove(photo.id!)}
               className="absolute -top-1.5 -right-1.5 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10"

@@ -92,57 +92,67 @@ export function generateIndependentNarrative(studentName: string, aspect: Aspect
   if (indicators.length === 0) {
     return {
       narrative: `Laporan pengembangan untuk aspek ${aspect.name} belum tersedia karena belum ada indikator yang dinilai pada periode ini.`,
-      parentAdvice: "Mari mulai memberikan penilaian pada aspek ini agar kami dapat memberikan ulasan yang akurat."
+      advice: "Mari mulai memberikan penilaian pada aspek ini agar kami dapat memberikan ulasan yang akurat."
     };
   }
 
-  const opening = getRandom(openingPhrases).replace(/{student}/g, name);
+  // 1. Group indicators by score
+  const highIndicators = indicators.filter(i => scores[i.id] === 'BSB' || scores[i.id] === 'BSH');
+  const midIndicators = indicators.filter(i => scores[i.id] === 'MB');
+  const lowIndicators = indicators.filter(i => scores[i.id] === 'BB');
+
+  // 2. Pick up to 2 High, 2 Low, 2 Mid. 
+  // We prioritize high/low to give a balanced review, then pad with mid if needed.
+  let selectedIndicators = [
+    ...highIndicators.slice(0, 2),
+    ...lowIndicators.slice(0, 2),
+    ...midIndicators.slice(0, 2)
+  ];
+  
+  // If we have very few selected, we might want to just grab more from the others if available to reach at least 3-4 if possible
+  if (selectedIndicators.length < 3) {
+      const remainingHigh = highIndicators.slice(2);
+      const remainingMid = midIndicators.slice(2);
+      const remainingLow = lowIndicators.slice(2);
+      selectedIndicators = [...selectedIndicators, ...remainingHigh, ...remainingMid, ...remainingLow].slice(0, 4);
+  }
+
+  // Sort them so the narrative flows a bit better (High -> Mid -> Low)
+  selectedIndicators.sort((a, b) => {
+    const order = { 'BSB': 1, 'BSH': 2, 'MB': 3, 'BB': 4 };
+    return order[scores[a.id] as keyof typeof order] - order[scores[b.id] as keyof typeof order];
+  });
 
   const processParagraph = (items: typeof aspect.indicators, isOpening: boolean = false) => {
-    // Limit sentences to avoid making it too long (max 5 items per paragraph)
-    // Actually the request says max 5 sentences per paragraph.
-    // If opening is counted, then the remaining 4 sentences from indicators.
-    const paragraphContent = items.slice(0, 5).map((indicator, index) => {
+    let narrativeParts: string[] = [];
+    
+    items.forEach((indicator, index) => {
       const score = scores[indicator.id] || "BB";
       const template = getUniqueTemplate(score);
+      
+      // Vary the subject reference to avoid repeating the student name too much
+      let subject = name;
+      if (index === 1) subject = "Ananda";
+      if (index === 2) subject = name;
+      
       let sentence = template
-        .replace(/{student}/g, name)
+        .replace(/{student}/g, subject)
         .replace(/{indicator}/g, indicator.text.toLowerCase());
       
-      // Add transition if not the first sentence of the whole narrative
-      if (index > 0 || !isOpening) {
+      // Sparingly add transitions
+      if (index === 1 && items.length > 2) {
         const trans = getRandom(transitions);
         sentence = `${trans} ${sentence.charAt(0).toLowerCase() + sentence.slice(1)}`;
       }
-      return sentence;
-    }).join(' ');
+      
+      narrativeParts.push(sentence);
+    });
 
-    return (isOpening ? "" : "\t") + paragraphContent;
+    return (isOpening ? "" : "\t") + narrativeParts.join(' ');
   };
 
-  // Divide indicators into small chunks to keep paragraphs under 5 sentences
-  // Paragraph 1: Opening + (max 4 sentences)
-  // Paragraph 2: Tab + (max 5 sentences)
-  let fullNarrative = "";
-  if (indicators.length <= 4) {
-    fullNarrative = opening + processParagraph(indicators, true);
-  } else {
-    // Take first 4 for the first paragraph (1 opening + 4 indicators = 5 sentences)
-    const p1Items = indicators.slice(0, 4);
-    const p2Items = indicators.slice(4, 9); // Next 5 for second paragraph
-    
-    const p1 = opening + processParagraph(p1Items, true);
-    const p2 = processParagraph(p2Items, false);
-    
-    fullNarrative = `${p1}\n\n${p2}`;
-    
-    // If there's more, maybe a 3rd paragraph (rare but safety logic)
-    if (indicators.length > 9) {
-        const p3Items = indicators.slice(9, 14);
-        const p3 = processParagraph(p3Items, false);
-        fullNarrative += `\n\n${p3}`;
-    }
-  }
+  const opening = getRandom(openingPhrases).replace(/{student}/g, name);
+  const fullNarrative = opening + processParagraph(selectedIndicators, true);
 
   // Advice logic (variety for advice too)
   const scoreValues = Object.values(scores).map(s => {
@@ -182,6 +192,6 @@ export function generateIndependentNarrative(studentName: string, aspect: Aspect
 
   return {
     narrative: fullNarrative,
-    parentAdvice: advice
+    advice: advice
   };
 }

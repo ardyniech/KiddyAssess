@@ -42,7 +42,7 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [isSaving, setIsSaving] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
 
   // Auth Listener
@@ -79,10 +79,11 @@ function App() {
     async function initData() {
       if (!user) return;
       
-      setIsSaving(true);
+      setSyncStatus('Memuat data dari cloud...');
       try {
         // Load from Cloud first if online
         const cloudStudents = await syncService.getStudents();
+        setSyncStatus('Memuat penilaian dari cloud...');
         const cloudAssessments = await syncService.getAssessments();
         
         if (cloudStudents.length > 0) {
@@ -104,11 +105,12 @@ function App() {
         const savedView = localStorage.getItem("kiddy_view");
         if (savedActiveStudentId) setActiveStudentId(JSON.parse(savedActiveStudentId));
         if (savedView) setView(JSON.parse(savedView) as "assessment" | "report");
-        
+        setSyncStatus('Sync selesai.');
       } catch (err) {
+        setSyncStatus('Gagal memuat dari cloud.');
         console.error("Initialization failed:", err);
       } finally {
-        setIsSaving(false);
+        setTimeout(() => setSyncStatus(null), 2000);
       }
     }
     
@@ -120,7 +122,7 @@ function App() {
     if (!user || students.length === 0) return;
 
     const saveToDB = async () => {
-      setIsSaving(true);
+      setSyncStatus('Menyinkronkan data...');
       try {
         // Local Save
         await Promise.all([
@@ -133,20 +135,21 @@ function App() {
         localStorage.setItem("kiddy_view", JSON.stringify(view));
         
         // Cloud Sync (Granular)
-        // We'll sync changed students/assessments. For now, simple bulk sync is fine as per logic.
         const settings = await getSchoolProfile();
         if (settings?.enableCloudSync) {
-          await Promise.all([
-            ...students.map(s => syncService.saveStudent(s)),
-            ...Object.keys(assessments).map(sid => syncService.saveAssessment(sid, assessments[sid]))
-          ]);
+          setSyncStatus('Sinkronisasi murid...');
+          await Promise.all(students.map(s => syncService.saveStudent(s)));
+          setSyncStatus('Sinkronisasi penilaian...');
+          await Promise.all(Object.keys(assessments).map(sid => syncService.saveAssessment(sid, assessments[sid])));
         }
 
         setLastSaved(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        setSyncStatus('Sync selesai.');
       } catch (err) {
+        setSyncStatus('Sync gagal.');
         console.error("Auto-sync failed:", err);
       } finally {
-        setTimeout(() => setIsSaving(false), 800);
+        setTimeout(() => setSyncStatus(null), 2000);
       }
     };
 
@@ -390,44 +393,30 @@ function App() {
               animate={{ opacity: 1, y: 0 }}
               className="max-w-6xl mx-auto space-y-5 md:scaled-gap-4"
             >
-              <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex items-center gap-4 md:gap-6">
+              <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-4 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-6">
                   {user?.photoURL && (
                     <motion.div 
                       initial={{ scale: 0.8, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="w-16 h-16 md:w-24 md:h-24 rounded-3xl overflow-hidden border-4 border-white/50 dark:border-slate-800 shadow-2xl relative group"
+                      className="w-20 h-20 rounded-2xl overflow-hidden shadow-lg"
                     >
                       <img src={user.photoURL} className="w-full h-full object-cover" alt="Profile" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                     </motion.div>
                   )}
                   <div>
-                    <h1 className="text-3xl md:text-5xl font-black font-display tracking-tight mb-1 md:mb-2 text-slate-900 dark:text-white leading-tight">
-                      Selamat Datang, <span className="text-cyan-500 dark:text-cyan-400">{user?.displayName?.split(' ')[0] || "Guru"}!</span> 👋
+                    <h1 className="text-4xl md:text-6xl font-extrabold tracking-tighter text-slate-900 dark:text-white mb-2">
+                       {user?.displayName?.split(' ')[0] || "Guru"}
                     </h1>
-                    <p className="text-sm md:text-base text-slate-600 dark:text-slate-400 font-medium italic">KiddyAssess Dashboard Assessment Digital</p>
+                    <p className="text-sm text-slate-500 uppercase tracking-[0.2em] font-bold">KiddyAssess Dashboard</p>
                   </div>
                 </div>
-                <div className="flex gap-2 w-full md:w-auto">
-                  <div className="flex-1 md:flex-none glass-card px-3 py-2 md:px-5 md:py-3.5 rounded-2xl md:rounded-3xl flex items-center gap-3 md:gap-4 border-black/5 dark:neon-cyan bg-white/50 dark:bg-slate-900/40">
-                    <div className="flex flex-col items-center gap-2">
-                       <div className="w-10 h-10 md:w-14 md:h-14 bg-cyan-400/10 rounded-xl flex items-center justify-center">
-                          <Users className="w-5 h-5 md:w-8 md:h-8 text-cyan-400" />
-                       </div>
-                       <button 
-                         onClick={fillAllAssessments}
-                         className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-white text-[9px] md:text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-cyan-500/20 active:scale-95 transition-all flex items-center gap-2"
-                       >
-                         <Sparkles size={12} />
-                         Simulasi
-                       </button>
+
+                <div className="flex flex-col items-start md:items-end gap-1">
+                    <div className="text-4xl font-black text-slate-900 dark:text-white leading-none">
+                        {students.length}
                     </div>
-                    <div>
-                      <div className="text-xl md:text-4xl font-black text-slate-800 dark:text-white leading-none mb-1">{students.length}</div>
-                      <div className="text-[10px] md:text-sm font-bold text-slate-500 dark:text-slate-400 tracking-tight">Murid Terdaftar</div>
-                    </div>
-                  </div>
+                    <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">Murid Terdaftar</div>
                 </div>
               </header>
 
@@ -599,7 +588,7 @@ function App() {
                       onScoreChange={handleScoreChange}
                       progress={Math.round((Object.keys(currentScores).length / currentAspect.indicators.length) * 100)}
                       lastSaved={lastSaved}
-                      isSaving={isSaving}
+                      syncStatus={syncStatus}
                     />
                   </motion.div>
                 ) : (
@@ -634,13 +623,13 @@ function App() {
           <div className="flex items-center gap-1.5">
             <span className={cn(
               "w-2 h-2 rounded-full shadow-[0_0_8px]",
-              isSaving ? "bg-amber-500 animate-bounce shadow-amber-500/50" : "bg-emerald-500 animate-pulse shadow-emerald-500/50"
+              syncStatus ? "bg-amber-500 animate-bounce shadow-amber-500/50" : "bg-emerald-500 animate-pulse shadow-emerald-500/50"
             )}></span>
-            <span className="uppercase tracking-widest">
-              {isSaving ? "Sinkronisasi ke LocalDB..." : "Penyimpanan Lokal Aktif (IndexedDB)"}
+            <span className="uppercase tracking-widest text-[8px] md:text-[10px]">
+              {syncStatus ? syncStatus : "Semua Data Tersinkronisasi"}
             </span>
           </div>
-          {lastSaved && !isSaving && (
+          {lastSaved && !syncStatus && (
             <div className="hidden md:flex items-center gap-1.5 pl-3 border-l border-black/10 dark:border-white/10 uppercase tracking-widest opacity-60">
               <CheckCircle2 size={10} className="text-emerald-500" />
               Sesi Tersimpan: {lastSaved}

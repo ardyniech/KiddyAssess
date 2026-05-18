@@ -53,12 +53,19 @@ export async function savePhoto(studentId: string, aspectId: string, indicatorId
     .equals([studentId, aspectId, indicatorId])
     .first();
 
+  const previewBase64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+
   const photo: AssessmentPhoto = {
     studentId,
     aspectId,
     indicatorId,
     blob,
-    previewUrl: URL.createObjectURL(blob),
+    previewUrl: previewBase64,
     createdAt: Date.now()
   };
 

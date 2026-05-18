@@ -28,6 +28,8 @@ interface AppTheme {
     marginScale: number;
     cardOpacity: number;
     cardBlur: number;
+    cardFontSize: number;
+    cardFontColor: string;
   };
   content: {
     bannerTitle: string;
@@ -67,6 +69,8 @@ const defaultTheme: AppTheme = {
     marginScale: 1,
     cardOpacity: 0.7,
     cardBlur: 24,
+    cardFontSize: 14,
+    cardFontColor: '#0f172a',
   },
   content: {
     bannerTitle: 'Assessment Digital Praktis',
@@ -141,6 +145,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     root.style.setProperty('--margin-scale', String(theme.layout.marginScale));
     root.style.setProperty('--card-blur', `${theme.layout.cardBlur}px`);
     root.style.setProperty('--card-opacity', String(theme.layout.cardOpacity));
+    root.style.setProperty('--card-font-size', `${theme.layout.cardFontSize}px`);
+    root.style.setProperty('--card-font-color', theme.layout.cardFontColor);
 
     localStorage.setItem('kiddyassess-theme', JSON.stringify(theme));
   }, [theme]);

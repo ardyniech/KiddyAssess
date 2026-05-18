@@ -67,8 +67,8 @@ export function MoleculeStudentCard({ name, studentClass, semester, photoUrl, pr
       
       <div className="grow overflow-hidden">
         <div className={cn(
-          "text-sm md:text-lg font-black truncate",
-          active ? "text-white" : "text-slate-800 dark:text-white"
+          "text-[var(--card-font-size)] md:text-lg font-black truncate",
+          active ? "text-white" : "text-[var(--card-font-color)]"
         )}>{name}</div>
         <div className={cn(
           "text-[10px] md:text-xs uppercase tracking-wider font-bold",
