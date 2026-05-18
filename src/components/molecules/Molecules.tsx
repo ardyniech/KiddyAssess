@@ -1,0 +1,98 @@
+import React from "react";
+import { AtomScaleButton } from "../atoms/AtomScaleButton";
+import { AtomInput, AtomText } from "../atoms/CommonAtoms";
+import { AssessmentScale } from "../../types";
+import { User, GraduationCap, Calendar } from "lucide-react";
+import { cn } from "../../lib/utils";
+
+interface MoleculeScaleSelectorProps {
+  currentValue?: AssessmentScale;
+  onSelect: (value: AssessmentScale) => void;
+}
+
+export function MoleculeScaleSelector({ currentValue, onSelect }: MoleculeScaleSelectorProps) {
+  const options: AssessmentScale[] = ["BB", "MB", "BSH", "BSB"];
+  
+  return (
+    <div className="flex gap-2 w-full mt-2">
+      {options.map((opt) => (
+        <AtomScaleButton
+          key={opt}
+          label={opt}
+          variant={opt}
+          active={currentValue === opt}
+          onClick={() => onSelect(opt)}
+        />
+      ))}
+    </div>
+  );
+}
+
+interface MoleculeStudentCardProps {
+  name: string;
+  studentClass: string;
+  semester: string;
+  progress: number;
+  active?: boolean;
+  onClick: () => void;
+}
+
+export function MoleculeStudentCard({ name, studentClass, semester, progress, active, onClick }: MoleculeStudentCardProps) {
+  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        "p-4 rounded-2xl border transition-all duration-500 cursor-pointer flex items-center gap-3",
+        active 
+          ? "bg-sky-500/20 border-sky-400/30 shadow-lg shadow-sky-500/10" 
+          : "bg-white/5 border-white/10 hover:bg-white/10 opacity-70 hover:opacity-100"
+      )}
+    >
+      <div className={cn(
+        "w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0",
+        active ? "bg-sky-400" : "bg-slate-600"
+      )}>
+        {initials || "??"}
+      </div>
+      
+      <div className="grow overflow-hidden">
+        <div className="text-sm font-semibold truncate text-white">{name}</div>
+        <div className={cn(
+          "text-[10px] uppercase tracking-wider font-bold",
+          active ? "text-sky-300" : "text-slate-500"
+        )}>
+          {active && "Active • "} Kelas {studentClass}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface MoleculeFormInputProps {
+  label: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  icon?: React.ReactNode;
+}
+
+export function MoleculeFormInput({ label, value, onChange, placeholder, icon }: MoleculeFormInputProps) {
+  return (
+    <div className="relative">
+      <AtomInput
+        label={label}
+        value={value}
+        onChange={onChange as any} // Cast to avoid strict input event mismatch if any
+        placeholder={placeholder}
+        className={cn(icon ? "pl-11" : "")}
+      />
+      {icon && (
+        <div className="absolute left-4 top-9 text-white/40">
+          {icon}
+        </div>
+      )}
+    </div>
+  );
+}

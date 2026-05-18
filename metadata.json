@@ -1,0 +1,6 @@
+{
+  "name": "KiddyAssess - Guru TK",
+  "description": "Alat bantu penilaian perkembangan anak didik TK dengan antarmuka modern (Weather UI style) dan generator narasi otomatis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
