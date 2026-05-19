@@ -58,13 +58,14 @@
       "type": "object",
       "properties": {
         "studentId": { "type": "string" },
+        "aspectId": { "type": "string" },
         "indicatorId": { "type": "string" },
         "url": { "type": "string" },
         "caption": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "ownerId": { "type": "string" }
       },
-      "required": ["studentId", "indicatorId", "url", "ownerId"]
+      "required": ["studentId", "aspectId", "indicatorId", "url", "ownerId"]
     }
   },
   "firestore": {
