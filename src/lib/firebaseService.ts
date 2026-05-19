@@ -68,10 +68,11 @@ export const syncService = {
     if (!auth.currentUser) return;
     const path = `students/${student.id}`;
     try {
+      const now = Date.now();
       await setDoc(doc(db, 'students', student.id), {
         ...student,
         ownerId: auth.currentUser.uid,
-        updatedAt: serverTimestamp()
+        updatedAt: now
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
@@ -113,11 +114,12 @@ export const syncService = {
     if (!auth.currentUser) return;
     const path = `assessments/${studentId}`;
     try {
+      const now = Date.now();
       await setDoc(doc(db, 'assessments', studentId), {
         studentId,
         scores,
         ownerId: auth.currentUser.uid,
-        updatedAt: serverTimestamp()
+        updatedAt: now
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);

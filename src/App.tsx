@@ -43,7 +43,10 @@ function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
+  const [syncErrors, setSyncErrors] = useState<string[]>([]);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Auth Listener
   useEffect(() => {
@@ -74,57 +77,13 @@ function App() {
   }, [theme]);
 
 
-  // Initial Load with Cloud Sync
+  // 1. Immediate Local Save (Robust Offline-First)
   useEffect(() => {
-    async function initData() {
-      if (!user) return;
-      
-      setSyncStatus('Memuat data dari cloud...');
-      try {
-        // Load from Cloud first if online
-        const cloudStudents = await syncService.getStudents();
-        setSyncStatus('Memuat penilaian dari cloud...');
-        const cloudAssessments = await syncService.getAssessments();
-        
-        if (cloudStudents.length > 0) {
-          setStudents(cloudStudents);
-          setAssessments(cloudAssessments);
-          // Sync back to local IDB for offline use
-          await db.students.clear();
-          await db.students.bulkAdd(cloudStudents);
-          await saveAssessments(cloudAssessments);
-        } else {
-          // Fallback to IDB
-          const savedStudents = await db.students.toArray();
-          const savedAssessments = await loadAssessments();
-          if (savedStudents.length > 0) setStudents(savedStudents);
-          setAssessments(savedAssessments);
-        }
-        
-        const savedActiveStudentId = localStorage.getItem("kiddy_active_student_id");
-        const savedView = localStorage.getItem("kiddy_view");
-        if (savedActiveStudentId) setActiveStudentId(JSON.parse(savedActiveStudentId));
-        if (savedView) setView(JSON.parse(savedView) as "assessment" | "report");
-        setSyncStatus('Sync selesai.');
-      } catch (err) {
-        setSyncStatus('Gagal memuat dari cloud.');
-        console.error("Initialization failed:", err);
-      } finally {
-        setTimeout(() => setSyncStatus(null), 2000);
-      }
-    }
-    
-    if (!authLoading) initData();
-  }, [user, authLoading]);
+    if (!user || !isLoaded) return;
+    if (students.length === 0 && Object.keys(assessments).length === 0) return;
 
-  // Robust Auto-Save to Cloud & Local
-  useEffect(() => {
-    if (!user || students.length === 0) return;
-
-    const saveToDB = async () => {
-      setSyncStatus('Menyinkronkan data...');
+    const saveLocal = async () => {
       try {
-        // Local Save
         await Promise.all([
           db.students.bulkPut(students),
           saveAssessments(assessments)
@@ -134,28 +93,144 @@ function App() {
         localStorage.setItem("kiddy_active_aspect_index", JSON.stringify(activeAspectIndex));
         localStorage.setItem("kiddy_view", JSON.stringify(view));
         
-        // Cloud Sync (Granular)
-        const settings = await getSchoolProfile();
-        if (settings?.enableCloudSync) {
-          setSyncStatus('Sinkronisasi murid...');
-          await Promise.all(students.map(s => syncService.saveStudent(s)));
-          setSyncStatus('Sinkronisasi penilaian...');
-          await Promise.all(Object.keys(assessments).map(sid => syncService.saveAssessment(sid, assessments[sid])));
-        }
-
         setLastSaved(new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-        setSyncStatus('Sync selesai.');
       } catch (err) {
-        setSyncStatus('Sync gagal.');
-        console.error("Auto-sync failed:", err);
-      } finally {
-        setTimeout(() => setSyncStatus(null), 2000);
+        console.error("Local save failed:", err);
       }
     };
 
-    const timer = setTimeout(saveToDB, 3000); // 3s debounce for cloud efficiency
-    return () => clearTimeout(timer);
+    saveLocal();
   }, [students, assessments, activeStudentId, activeAspectIndex, view, user]);
+
+  // 2. Debounced Cloud Sync
+  useEffect(() => {
+    if (!user || students.length === 0) return;
+
+    const syncCloud = async () => {
+      try {
+        const settings = await getSchoolProfile();
+        if (settings?.enableCloudSync) {
+          setIsSyncing(true);
+          const errors: string[] = [];
+          
+          // Sync Students
+          for (const s of students) {
+            try {
+              await syncService.saveStudent(s);
+            } catch (err) {
+              errors.push(`Student ${s.name} failed`);
+              console.error(err);
+            }
+          }
+
+          // Sync Assessments
+          for (const sid of Object.keys(assessments)) {
+            try {
+               await syncService.saveAssessment(sid, assessments[sid]);
+            } catch (err) {
+               errors.push(`Assessment failed`);
+               console.error(err);
+            }
+          }
+          
+          setSyncErrors(errors);
+          if (errors.length === 0) {
+            setSyncStatus('Semua data tercadangkan');
+            setTimeout(() => setSyncStatus(null), 2000);
+          } else {
+            setSyncStatus(`${errors.length} error sinkronisasi`);
+          }
+        }
+      } catch (err) {
+        setSyncStatus('Cloud Gagal');
+        console.error("Cloud sync failed:", err);
+      } finally {
+        setIsSyncing(false);
+      }
+    };
+
+    const timer = setTimeout(syncCloud, 5000); // 5s debounce for cloud efficiency
+    return () => clearTimeout(timer);
+  }, [students, assessments, user]);
+
+  // Initial Load with Cloud Sync
+  useEffect(() => {
+    async function initData() {
+      if (!user) return;
+      
+      setSyncStatus('Memuat data...');
+      try {
+        // Parallel load: Cloud and Local
+        const [cloudStudents, cloudAssessments, localStudents, localAssessments] = await Promise.all([
+          syncService.getStudents(),
+          syncService.getAssessments(),
+          db.students.toArray(),
+          loadAssessments()
+        ]);
+
+        console.log("Init Data: ", { cloudLen: cloudStudents.length, localLen: localStudents.length });
+
+        // Logic: Local is primary for speed. Cloud is secondary for persistence.
+        // We initialize with Local first, then potentially update with Cloud.
+        let finalStudents = localStudents;
+        let finalAssessments = localAssessments;
+
+        // If Cloud exists, we evaluate if we should use it.
+        // For simplicity: If local is empty, use cloud.
+        // If both exist, we could compare timestamps, but for now let's just log.
+        if (cloudStudents.length > 0) {
+            if (localStudents.length === 0) {
+                finalStudents = cloudStudents;
+                finalAssessments = cloudAssessments;
+            } else {
+                // Determine which is newer. 
+                // We'll compare the max updatedAt from cloud vs local.
+                const cloudMax = Math.max(...cloudStudents.map(s => s.updatedAt || 0));
+                const localMax = Math.max(...localStudents.map(s => s.updatedAt || 0));
+                
+                if (cloudMax > localMax) {
+                    console.log("Cloud is newer. Updating local.");
+                    finalStudents = cloudStudents;
+                    finalAssessments = cloudAssessments;
+                } else {
+                    console.log("Local is newer or equal. Keeping local.");
+                }
+            }
+        }
+
+        setStudents(finalStudents);
+        setAssessments(finalAssessments);
+
+        // Background: Ensure Local DB is exactly what we have in state
+        if (finalStudents.length > 0) {
+            await db.students.clear();
+            await db.students.bulkAdd(finalStudents);
+            await saveAssessments(finalAssessments);
+        }
+        
+        // Restore meta-state
+        const savedActiveStudentId = localStorage.getItem("kiddy_active_student_id");
+        const savedView = localStorage.getItem("kiddy_view");
+        if (savedActiveStudentId) {
+            const sid = JSON.parse(savedActiveStudentId);
+            // Verify student still exists
+            if (cloudStudents.some(s => s.id === sid) || localStudents.some(s => s.id === sid)) {
+                setActiveStudentId(sid);
+            }
+        }
+        if (savedView) setView(JSON.parse(savedView) as "assessment" | "report");
+        
+        setIsLoaded(true);
+      } catch (err) {
+        setSyncStatus('Gagal memuat data');
+        console.error("Initialization failed:", err);
+      } finally {
+        setTimeout(() => setSyncStatus(null), 2000);
+      }
+    }
+    
+    if (!authLoading) initData();
+  }, [user, authLoading]);
 
   const fillAllAssessments = () => {
     const newAssessments: StudentAssessment = { ...assessments };
@@ -186,13 +261,19 @@ function App() {
     const newStudent: Student = {
       ...data,
       id: crypto.randomUUID(),
+      updatedAt: Date.now()
     };
     setStudents([...students, newStudent]);
     setActiveStudentId(newStudent.id);
   };
 
   const handleUpdateStudent = (student: Student) => {
-    setStudents(prev => prev.map(s => s.id === student.id ? student : s));
+    const updated = { ...student, updatedAt: Date.now() };
+    setStudents(prev => prev.map(s => s.id === student.id ? updated : s));
+    // If this is the active student, update local ref too
+    if (activeStudentId === student.id) {
+        // Active student derived from students array, so state update is enough
+    }
   };
 
   const handleDeleteStudent = (studentId: string) => {
@@ -212,6 +293,9 @@ function App() {
   const handleScoreChange = (indicatorId: string, score: AssessmentScale) => {
     if (!activeStudentId) return;
     
+    // Update timestamp on student for sync priority
+    setStudents(prev => prev.map(s => s.id === activeStudentId ? { ...s, updatedAt: Date.now() } : s));
+
     setAssessments(prev => {
       const studentData = prev[activeStudentId] || {};
       const aspectData = studentData[currentAspect.id] || {};
@@ -296,10 +380,11 @@ function App() {
   return (
     <div className="h-screen w-full font-sans flex flex-col overflow-hidden relative text-main">
       <AnimatePresence>
-        {showSplash && (
+        {(!isLoaded || showSplash) && (
           <motion.div
+            key="loading-splash"
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.1 }}
+            exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-[#020617] flex flex-col items-center justify-center overflow-hidden"
           >
             <div className="absolute inset-0 bg-radial-gradient from-cyan-500/10 via-transparent to-transparent opacity-50" />
@@ -307,17 +392,17 @@ function App() {
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
               className="flex flex-col items-center relative z-10"
             >
-              <div className="w-24 h-24 bg-slate-900 rounded-[2rem] flex items-center justify-center neon-cyan mb-8 overflow-hidden relative group">
-                <div className="absolute inset-0 bg-gradient-to-tr from-cyan-400/20 to-transparent" />
+              <div className="w-24 h-24 bg-slate-900 rounded-[2rem] flex items-center justify-center neon-cyan mb-8">
                 <School className="w-12 h-12 text-cyan-400" />
               </div>
               <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white mb-2 text-center">
                 Kiddy<span className="text-cyan-400">Assess</span>
               </h1>
-              <p className="text-[10px] md:text-sm text-cyan-400/50 uppercase tracking-[0.8em] font-black">Professional Edition</p>
+              <p className="text-[10px] md:text-sm text-cyan-400/50 uppercase tracking-[0.8em] font-black">
+                {showSplash ? "Professional Edition" : "Menyiapkan Data..."}
+              </p>
               
               <div className="mt-12 w-48 h-1 bg-white/5 rounded-full overflow-hidden">
                 <motion.div 
@@ -623,10 +708,15 @@ function App() {
           <div className="flex items-center gap-1.5">
             <span className={cn(
               "w-2 h-2 rounded-full shadow-[0_0_8px]",
-              syncStatus ? "bg-amber-500 animate-bounce shadow-amber-500/50" : "bg-emerald-500 animate-pulse shadow-emerald-500/50"
+              isSyncing ? "bg-amber-500 animate-bounce shadow-amber-500/50" : 
+              syncErrors.length > 0 ? "bg-red-500 shadow-red-500/50" :
+              "bg-emerald-500 animate-pulse shadow-emerald-500/50"
             )}></span>
-            <span className="uppercase tracking-widest text-[8px] md:text-[10px]">
-              {syncStatus ? syncStatus : "Semua Data Tersinkronisasi"}
+            <span className={cn(
+                "uppercase tracking-widest text-[8px] md:text-[10px]",
+                syncErrors.length > 0 ? "text-red-500" : ""
+            )}>
+              {isSyncing ? "Sinkronisasi..." : syncStatus ? syncStatus : "Semua Data Terlindungi"}
             </span>
           </div>
           {lastSaved && !syncStatus && (

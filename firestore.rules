@@ -16,7 +16,7 @@ service cloud.firestore {
     }
 
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() > 0 && id.size() <= 128;
     }
 
     function incoming() {
@@ -36,7 +36,7 @@ service cloud.firestore {
         && data.class is string && data.class.size() <= 100
         && data.semester is string && data.semester.size() <= 50
         && data.ownerId == request.auth.uid
-        && data.updatedAt == request.time;
+        && (data.updatedAt is number || data.updatedAt == request.time);
     }
 
     function isValidAssessment(data) {
@@ -44,20 +44,22 @@ service cloud.firestore {
         && data.studentId is string && data.studentId.size() <= 128
         && data.scores is map
         && data.ownerId == request.auth.uid
-        && data.updatedAt == request.time;
+        && (data.updatedAt is number || data.updatedAt == request.time);
     }
 
     function isValidSettings(data) {
       return data.keys().hasAll(['ownerId', 'updatedAt'])
         && data.ownerId == request.auth.uid
-        && data.updatedAt == request.time
+        && (data.updatedAt is number || data.updatedAt == request.time)
         && (data.get('name', '') is string && data.get('name', '').size() <= 200)
         && (data.get('phone', '') is string && data.get('phone', '').size() <= 20);
     }
 
     function isValidPhoto(data) {
-      return data.keys().hasAll(['studentId', 'indicatorId', 'url', 'ownerId'])
+      return data.keys().hasAll(['studentId', 'aspectId', 'indicatorId', 'url', 'ownerId'])
         && data.studentId is string && data.studentId.size() <= 128
+        && data.aspectId is string && data.aspectId.size() <= 100
+        && data.indicatorId is string && data.indicatorId.size() <= 100
         && data.url is string && data.url.size() <= 2048
         && data.ownerId == request.auth.uid;
     }

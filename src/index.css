@@ -111,8 +111,15 @@ html {
   
   .glass-card {
     background-color: color-mix(in srgb, var(--glass-bg), transparent calc(100% - (var(--card-opacity) * 100%)));
-    backdrop-filter: blur(var(--card-blur));
+    backdrop-filter: blur(var(--card-blur)) saturate(180%);
     border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.05);
+  }
+
+  .glass-panel {
+    background-color: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .scaled-p-1 { padding: calc(0.25rem * var(--padding-scale)); }

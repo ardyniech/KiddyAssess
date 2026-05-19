@@ -191,8 +191,9 @@ export function OrganismPDFPreview({ student, aspects, allScores, globalProgress
 
   const exportPDF = async (triggerShare: boolean = false) => {
     setIsExporting(true);
-    // Wait for the DOM to update zoom scale to 1px before capturing
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // Force a re-render cycle to ensure zoom: 1 for capturing
+    setZoom(1);
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Use selected paper size dimensions in mm
     const paperDimensions = paperSize === 'A4' ? [210, 297] : [210, 330];
@@ -207,36 +208,37 @@ export function OrganismPDFPreview({ student, aspects, allScores, globalProgress
         const element = document.getElementById(`pdf-page-${aspect.id}`);
         if (!element) continue;
 
-        // PRE-IMPROVEMENT: Ensure all images are loaded
+        // Ensure all images are loaded
         const images = Array.from(element.querySelectorAll('img'));
         await Promise.all(images.map(img => {
           if (img.complete) return Promise.resolve();
           return new Promise<void>((resolve) => {
             img.onload = () => resolve();
-            img.onerror = () => resolve(); // Ignore load errors for canvas
+            img.onerror = () => resolve(); 
           });
         }));
 
-        // Force capture the specific page element without scrolling offsets
         const canvas = await html2canvas(element, {
-          scale: 3, // Increased scale for crisper text and images in PDF
+          scale: 4, // High DPI for production quality
           useCORS: true,
           backgroundColor: "#ffffff",
           logging: false,
-          imageTimeout: 15000, // Sufficient timeout for images
-          allowTaint: false, // Safer for exporting base64 and cross-origin content
+          imageTimeout: 15000,
+          allowTaint: false,
+          scrollX: -window.scrollX,
+          scrollY: -window.scrollY,
+          windowWidth: document.documentElement.clientWidth,
+          windowHeight: document.documentElement.clientHeight,
         });
         
-        const imgData = canvas.toDataURL("image/png");
+        const imgData = canvas.toDataURL("image/jpeg", 0.95);
         
         if (i > 0) pdf.addPage(paperDimensions);
-        // Cover full page width and maintain aspect ratio dynamically
-        const imgProps = pdf.getImageProperties(imgData);
-        const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
-        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, imgHeight);
+        // Map canvas exactly to paper
+        pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
       }
       
-      const fileName = `Raport_${paperSize}_${student.name}.pdf`;
+      const fileName = `Raport_${student.name.replace(/\s+/g, '_')}_${aspects.length}Hal.pdf`;
       const pdfBlob = pdf.output('blob');
 
       if (triggerShare && navigator.share) {
@@ -247,9 +249,10 @@ export function OrganismPDFPreview({ student, aspects, allScores, globalProgress
       }
     } catch (error) {
       console.error("PDF Export Failed:", error);
-      alert("Gagal membuat PDF. Coba lagi.");
+      alert("Gagal membuat PDF. Pastikan koneksi stabil.");
     } finally {
       setIsExporting(false);
+      fitToWidth(); // Back to responsive zoom
     }
   };
 
@@ -450,17 +453,18 @@ export function OrganismPDFPreview({ student, aspects, allScores, globalProgress
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-sky-500/10 to-transparent pointer-events-none" />
                 
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 py-20 md:py-24">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 py-20 px-4">
                   <div 
-                    className="flex flex-col justify-between gap-8 px-[18mm] py-[25mm] md:px-[22mm] md:py-[30mm] rounded-[2px] shrink-0 pdf-font-fix pdf-compat overflow-hidden relative bg-white" 
+                    className="flex flex-col justify-between gap-6 px-[18mm] py-[25mm] md:px-[22mm] md:py-[30mm] shrink-0 pdf-font-fix pdf-compat overflow-hidden relative bg-white" 
                     id={`pdf-page-${aspect.id}`} 
                     style={{ 
                       width: `${pWidth}mm`, 
                       minHeight: `${pHeight}mm`,
+                      maxHeight: `${pHeight}mm`,
                       height: `${pHeight}mm`, 
                       color: '#1e293b',
                       backgroundColor: '#ffffff',
-                      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                      boxShadow: '0 40px 100px -20px rgba(15, 23, 42, 0.4)',
                       transform: isExporting ? 'none' : `scale(${zoom})`,
                       transformOrigin: 'top center',
                       transition: 'transform 0.3s ease'
@@ -468,86 +472,78 @@ export function OrganismPDFPreview({ student, aspects, allScores, globalProgress
                   >
                 
                   {/* PROFESSIONAL KOP SURAT */}
-                  <div className="flex items-center gap-4 md:gap-8 border-b-4 border-double pb-2 shrink-0" style={{ borderColor: '#0f172a' }}>
-                    <div className="w-14 h-14 md:w-16 md:h-16 flex items-center justify-center shrink-0">
+                  <div className="flex items-center gap-6 border-b-2 pb-3 shrink-0" style={{ borderColor: '#0f172a' }}>
+                    <div className="w-16 h-16 flex items-center justify-center shrink-0">
                       {profile.logoUrl ? (
                         <img src={profile.logoUrl} alt="Logo" className="w-full h-full object-contain" crossOrigin="anonymous" />
                       ) : (
-                        <div className="w-full h-full bg-slate-100 rounded-lg flex items-center justify-center border-2 border-slate-200" style={{ backgroundColor: '#f1f5f9', borderColor: '#e2e8f0' }}>
-                          <School size={48} style={{ color: '#cbd5e1' }} />
+                        <div className="w-full h-full bg-slate-50 rounded-2xl flex items-center justify-center border-2 border-slate-200" style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}>
+                          <School size={32} style={{ color: '#cbd5e1' }} />
                         </div>
                       )}
                     </div>
-                    <div className="grow text-center pr-24">
-                        <h1 className="text-2xl font-black uppercase tracking-tight" style={{ color: '#0f172a' }}>{profile.name}</h1>
-                        <p className="text-[11px] font-bold mt-1 uppercase tracking-widest" style={{ color: '#64748b' }}>{profile.address}</p>
-                        <div className="flex justify-center gap-4 mt-2 text-[10px] font-medium" style={{ color: '#94a3b8' }}>
-                          <span className="flex items-center gap-1"><Phone size={10} /> {profile.phone}</span>
-                          <span className="flex items-center gap-1"><Mail size={10} /> {profile.email}</span>
+                    <div className="grow text-center pr-16">
+                        <h1 className="text-xl font-black uppercase tracking-tight leading-none" style={{ color: '#0f172a' }}>{profile.name}</h1>
+                        <p className="text-[10px] font-bold mt-1.5 uppercase tracking-widest leading-loose" style={{ color: '#64748b' }}>{profile.address}</p>
+                        <div className="flex justify-center gap-4 mt-2 text-[9px] font-bold" style={{ color: '#94a3b8' }}>
+                          <span className="flex items-center gap-1 uppercase tracking-tighter"><Phone size={8} /> {profile.phone}</span>
+                          <span className="flex items-center gap-1 uppercase tracking-tighter"><Mail size={8} /> {profile.email}</span>
                         </div>
                     </div>
                   </div>
-  
+   
                   {/* Title and Identity Group */}
-                  <div className="shrink-0 flex flex-col gap-3">
+                  <div className="shrink-0 flex flex-col gap-4 mt-2">
                     <div className="text-center">
-                      <h2 className="text-lg font-black uppercase tracking-[0.2em]" style={{ color: '#0f172a' }}>Laporan Perkembangan Anak</h2>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.4em] mt-1" style={{ color: '#0284c7' }}>Aspek: {aspect.name}</p>
+                      <h2 className="text-base font-black uppercase tracking-[0.25em]" style={{ color: '#0f172a' }}>Laporan Perkembangan Anak</h2>
+                      <div className="h-1 w-24 bg-sky-500 mx-auto mt-2 rounded-full" />
+                      <p className="text-[10px] font-black uppercase tracking-[0.4em] mt-3" style={{ color: '#0284c7' }}>ASPEK: {aspect.name}</p>
                     </div>
     
                     {/* Identity Table */}
-                    <div className="p-3 rounded-lg grid grid-cols-2 gap-y-2 text-[11px] font-bold border" style={{ backgroundColor: '#f8fafc', borderColor: '#f1f5f9' }}>
-                      <div className="flex gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: '#0ea5e9' }} />
-                        <span className="uppercase tracking-widest" style={{ color: '#94a3b8' }}>Nama Murid</span>
+                    <div className="p-3 rounded-2xl grid grid-cols-2 gap-y-2 text-[10px] font-black border-2 border-slate-50" style={{ backgroundColor: '#f8fafc' }}>
+                      <div className="flex gap-2 items-center">
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#38bdf8' }} />
+                        <span className="uppercase tracking-widest text-[#94a3b8]">Nama Murid</span>
                       </div>
-                      <div className="uppercase tracking-wider" style={{ color: '#0f172a' }}>: {student.name}</div>
+                      <div className="uppercase tracking-wider text-[#0f172a]">: {student.name}</div>
                       
-                      <div className="flex gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: '#cbd5e1' }} />
-                        <span className="uppercase tracking-widest" style={{ color: '#94a3b8' }}>Kelas / SMT</span>
+                      <div className="flex gap-2 items-center">
+                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: '#e2e8f0' }} />
+                        <span className="uppercase tracking-widest text-[#94a3b8]">Kelas / SMT</span>
                       </div>
-                      <div className="uppercase tracking-wider" style={{ color: '#0f172a' }}>: {student.class} / Semester {student.semester}</div>
+                      <div className="uppercase tracking-wider text-[#0f172a]">: {student.class} / Semester {student.semester}</div>
                     </div>
                   </div>
-  
-                  <div className="relative group/narrative flex flex-col justify-center shrink overflow-hidden">
-                    <div className="flex items-center justify-between mb-2 shrink-0">
-                        <div className="flex items-center gap-3">
-                            <FileText size={16} style={{ color: '#0f172a' }} />
-                            <h3 className="text-xs font-black uppercase tracking-[0.1em] border-b-2 pb-1" style={{ color: '#0f172a', borderColor: '#0f172a' }}>Ulasan Capaian {aspect.name}</h3>
+   
+                  <div className="relative group/narrative flex flex-col justify-center shrink overflow-hidden min-h-[60mm]">
+                    <div className="flex items-center justify-between mb-3 shrink-0">
+                        <div className="flex items-center gap-2.5">
+                            <FileText size={14} style={{ color: '#0f172a' }} />
+                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: '#0f172a' }}>Capaian Belajar</h3>
                         </div>
-                        {profile.useAINarrative !== false && (
-                          <button 
-                            data-html2canvas-ignore="true"
-                            onClick={() => generateSingleAINarrative(aspect)}
-                            disabled={generatingAspects[aspect.id] || Object.keys(allScores[aspect.id] || {}).length === 0}
-                            className="flex items-center gap-1.5 px-2 py-1 bg-indigo-500 hover:bg-indigo-400 text-white text-[9px] font-black uppercase rounded-lg shadow-lg shadow-indigo-500/20 transition-all opacity-0 group-hover/narrative:opacity-100 disabled:opacity-30"
-                          >
-                            {generatingAspects[aspect.id] ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
-                            Generate AI
-                          </button>
-                        )}
                     </div>
-                    <div className="text-[12px] leading-relaxed text-justify font-medium px-4 border-l-2 whitespace-pre-wrap overflow-hidden" style={{ color: '#334155', tabSize: 4, borderColor: '#e2e8f0', maxHeight: '85mm' }}>
-                      {content.narrative || "Sedang memproses narasi penilaian... Mohon berikan 1 indikator skor terlebih dahulu jika belum."}
+                    <div className="text-[11px] leading-[1.8] text-justify font-medium px-4 border-l-2 whitespace-pre-wrap overflow-hidden" style={{ color: '#334155', borderColor: '#f1f5f9', maxHeight: '75mm' }}>
+                      {content.narrative || "Laporan sedang disusun otomatis..."}
                     </div>
                   </div>
                   
                   {/* Photo Documentation Section */}
                   {showPhotos && (
-                    <div className="shrink-0">
-                      <div className="flex items-center gap-3 mb-2">
-                          <ImageIcon size={16} style={{ color: '#0f172a' }} />
-                          <h3 className="text-[11px] font-black uppercase tracking-[0.1em] border-b-2 pb-0.5" style={{ color: '#0f172a', borderColor: '#0f172a' }}>Dokumentasi Kegiatan</h3>
+                    <div className="shrink-0 mt-2">
+                       <div className="flex items-center justify-between mb-3 shrink-0">
+                          <div className="flex items-center gap-2.5">
+                              <ImageIcon size={14} style={{ color: '#0f172a' }} />
+                              <h3 className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: '#0f172a' }}>Bukti Belajar</h3>
+                          </div>
                       </div>
-                      <div className="flex justify-evenly items-center px-4 md:px-8 mx-auto w-full">
+                      <div className="flex justify-evenly items-center gap-4 mx-auto w-full px-2">
                           {(() => {
                             const aspectPhotos = studentPhotos.filter(p => p.aspectId === aspect.id).slice(0, 3);
                             return [0, 1, 2].map((idx) => {
                               const photo = aspectPhotos[idx];
                                 return (
-                                <div key={idx} className="w-24 md:w-28 aspect-[3/4] rounded-lg flex flex-col items-center justify-center overflow-hidden relative border-2 border-slate-200 shrink-0 shadow-sm" style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}>
+                                <div key={idx} className="w-24 aspect-[4/5] rounded-[1.25rem] flex flex-col items-center justify-center overflow-hidden relative border border-slate-100 shrink-0 shadow-sm" style={{ backgroundColor: '#fcfdfe' }}>
                                   {photo ? (
                                     <img 
                                       src={photo.previewUrl} 
@@ -555,13 +551,13 @@ export function OrganismPDFPreview({ student, aspects, allScores, globalProgress
                                       alt="Documentation"
                                       crossOrigin="anonymous"
                                       referrerPolicy="no-referrer"
-                                      style={{ imageRendering: 'auto' }}
                                     />
                                   ) : (
                                     <>
-                                      <ImageIcon size={24} style={{ color: '#e2e8f0' }} />
-                                      <span className="text-[8px] font-black uppercase tracking-tighter" style={{ color: '#cbd5e1' }}>Foto {idx + 1}</span>
-                                      <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: 'rgba(15, 23, 42, 0.02)' }} />
+                                      <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center mb-1">
+                                        <ImageIcon size={14} style={{ color: '#e2e8f0' }} />
+                                      </div>
+                                      <span className="text-[7px] font-black uppercase tracking-tighter" style={{ color: '#cbd5e1' }}>Foto {idx + 1}</span>
                                     </>
                                   )}
                                 </div>
@@ -571,76 +567,63 @@ export function OrganismPDFPreview({ student, aspects, allScores, globalProgress
                       </div>
                     </div>
                   )}
-  
+   
                   {/* Parent Advice Section */}
-                  <div className="p-4 md:p-5 rounded-xl border-2 border-dotted relative shrink-0" style={{ backgroundColor: '#f0f9ff', borderColor: '#bae6fd' }}>
-                    <div className="absolute -top-2.5 left-5 px-2 flex items-center gap-1.5" style={{ backgroundColor: '#ffffff' }}>
-                        <Sparkles size={12} style={{ color: '#0ea5e9' }} />
-                        <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: '#0284c7' }}>Pesan Edukasi</span>
-                    </div>
-                    <p className="text-[11px] leading-relaxed italic font-semibold line-clamp-3" style={{ color: '#475569' }}>
-                        {content.advice || "Saran pola asuh akan muncul setelah narasi diproses."}
+                  <div className="p-4 rounded-3xl border border-sky-50 relative shrink-0 mt-2" style={{ backgroundColor: '#f0f9ff' }}>
+                    <p className="text-[10px] leading-relaxed italic font-bold" style={{ color: '#0369a1' }}>
+                        "{content.advice || "Sarankan pendampingan rutin di rumah."}"
                     </p>
                   </div>
-  
+   
                   {/* Footer Group */}
-                  <div className="shrink-0 flex flex-col gap-4">
+                  <div className="shrink-0 flex flex-col gap-6 mt-auto">
                     {/* Digital Signatures Area */}
                     {profile.showSignature !== false && (
                       <div className="shrink-0">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-4 text-right" style={{ color: '#94a3b8' }}>
+                        <p className="text-[9px] font-bold uppercase tracking-[0.2em] mb-6 text-right" style={{ color: '#64748b' }}>
                           {profile.address ? profile.address.split(",")[1] || "Jakarta" : "Jakarta"}, {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
                         </p>
                         
-                        <div className="grid grid-cols-3 gap-2 text-center">
-                          {/* 1. Kepala Sekolah */}
-                          <div className="flex flex-col justify-between min-h-[70px] md:min-h-[85px]">
-                            <p className="text-[9px] font-black uppercase tracking-[0.2em] leading-relaxed" style={{ color: '#94a3b8' }}>
-                              Mengetahui,<br/>Kepala Sekolah
+                        <div className="grid grid-cols-3 gap-0 text-center">
+                          {/* 1. Wali Murid */}
+                          <div className="flex flex-col justify-between min-h-[70px]">
+                            <p className="text-[8px] font-black uppercase tracking-widest leading-relaxed text-[#94a3b8]">
+                              Orang Tua / Wali
                             </p>
                             <div className="pt-2">
-                              <p className="text-[11px] font-black underline underline-offset-4" style={{ color: '#0f172a', textDecorationColor: '#e2e8f0' }}>
-                                {profile.principalName || "........................................"}
+                              <p className="text-[10px] font-black" style={{ color: '#cbd5e1' }}>( ................................ )</p>
+                            </div>
+                          </div>
+   
+                          {/* 2. Kepala Sekolah */}
+                          <div className="flex flex-col justify-between min-h-[70px]">
+                            <p className="text-[8px] font-black uppercase tracking-widest leading-relaxed text-[#94a3b8]">
+                              Kepala Sekolah
+                            </p>
+                            <div className="pt-2 px-1">
+                              <p className="text-[10px] font-black underline decoration-slate-200 underline-offset-4" style={{ color: '#0f172a' }}>
+                                {profile.principalName || "................................"}
                               </p>
-                              <p className="text-[8px] font-bold mt-1 uppercase tracking-widest" style={{ color: '#94a3b8' }}>NIP. .........................</p>
                             </div>
                           </div>
-  
-                          {/* 2. Wali Murid */}
-                          <div className="flex flex-col justify-between min-h-[70px] md:min-h-[85px]">
-                            <p className="text-[9px] font-black uppercase tracking-[0.2em] leading-relaxed" style={{ color: '#94a3b8' }}>
-                              Tanda Tangan,<br/>Orang Tua / Wali
-                            </p>
-                            <div className="pt-2">
-                              <p className="text-[11px] font-black" style={{ color: '#94a3b8' }}>( ........................................ )</p>
-                              <p className="text-[8px] font-bold mt-1 uppercase tracking-widest" style={{ color: '#94a3b8' }}>Wali Murid</p>
-                            </div>
-                          </div>
-  
+   
                           {/* 3. Guru Kelas */}
-                          <div className="flex flex-col justify-between min-h-[70px] md:min-h-[85px]">
-                            <p className="text-[9px] font-black uppercase tracking-[0.2em] leading-relaxed" style={{ color: '#94a3b8' }}>
-                              Disusun Oleh,<br/>Guru Kelas
+                          <div className="flex flex-col justify-between min-h-[70px]">
+                            <p className="text-[8px] font-black uppercase tracking-widest leading-relaxed text-[#94a3b8]">
+                              Guru Kelas
                             </p>
-                            <div className="pt-2">
-                              <p className="text-[11px] font-black underline underline-offset-4" style={{ color: '#0f172a', textDecorationColor: '#bae6fd' }}>
-                                {profile.teacherName || "........................................"}
+                            <div className="pt-2 px-1">
+                              <p className="text-[10px] font-black underline decoration-sky-100 underline-offset-4" style={{ color: '#0f172a' }}>
+                                {profile.teacherName || "................................"}
                               </p>
-                              <p className="text-[8px] font-bold mt-1 uppercase tracking-widest" style={{ color: '#94a3b8' }}>Pendidik</p>
                             </div>
                           </div>
                         </div>
                       </div>
                     )}
-  
-                    {profile.reportNote && (
-                      <div className="text-[9px] text-center font-medium italic shrink-0" style={{ color: '#94a3b8' }}>
-                        {profile.reportNote}
-                      </div>
-                    )}
-    
-                    <div className="pt-4 border-t text-[7px] text-center font-black uppercase tracking-[0.5em]" style={{ color: '#e2e8f0', borderColor: '#f8fafc' }}>
-                      Official Academic Record • KiddyAssess v2.5 • Page {aspects.indexOf(aspect) + 1} of {aspects.length}
+   
+                    <div className="pt-2 text-[7px] text-center font-black uppercase tracking-[0.4em] opacity-30" style={{ color: '#0f172a' }}>
+                      DIGITAL REPORT • KIDDYASSESS PRO • PAGE {aspects.indexOf(aspect) + 1}/{aspects.length}
                     </div>
                   </div>
                 </div>

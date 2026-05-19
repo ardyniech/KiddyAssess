@@ -6,6 +6,7 @@ export interface Student {
   class: string;
   semester: string;
   photoUrl?: string; // Optional student photo
+  updatedAt?: number; // Local timestamp
 }
 
 export interface SchoolProfile {
@@ -18,9 +19,10 @@ export interface SchoolProfile {
   logoUrl?: string;
   showSignature?: boolean;
   showPhotos?: boolean;
-  useAINarrative?: boolean; // New setting
-  enableCloudSync?: boolean; // New setting
+  useAINarrative?: boolean;
+  enableCloudSync?: boolean;
   reportNote?: string;
+  updatedAt?: number;
 }
 
 export interface Indicator {

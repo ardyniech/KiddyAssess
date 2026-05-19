@@ -44,22 +44,16 @@ async function startServer() {
         - BSB (Berkembang Sangat Baik)
 
         Tugas:
-        1. "narrative": Narasi penilaian (3-5 kalimat). Gunakan bahasa positif dan edukatif.
-        2. "parentAdvice": Saran praktis singkat untuk orang tua di rumah agar dapat mendukung perkembangan anak pada aspek ini (2-3 saran).
+        1. "narrative": Narasi penilaian (MAX 450 karakter). Gunakan bahasa positif, edukatif, dan profesional. Hindari pengulangan kata yang berlebihan.
+        2. "parentAdvice": Saran praktis singkat untuk orang tua (MAX 200 karakter).
 
         Kirimkan output dalam format JSON murni:
         { "narrative": "teks narasi...", "parentAdvice": "teks saran orang tua..." }
       `;
 
-      const modelResponse = await ai.models.generateContent({ 
-        model: "gemini-3.1-flash-lite", 
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json"
-        }
-      });
+      const modelResponse = await ai.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent(prompt);
 
-      const responseText = modelResponse.text || "";
+      const responseText = modelResponse.response.text() || "";
       res.json(JSON.parse(responseText));
     } catch (error: any) {
       console.error("Gemini Error:", error);

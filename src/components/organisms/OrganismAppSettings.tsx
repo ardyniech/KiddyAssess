@@ -35,7 +35,19 @@ export const OrganismAppSettings: React.FC<{ isOpen: boolean; onClose: () => voi
   const handleSaveProfile = async () => {
     if (schoolProfile) {
       setIsSaving(true);
-      await saveSchoolProfile(schoolProfile);
+      const updated = { ...schoolProfile, updatedAt: Date.now() };
+      await saveSchoolProfile(updated);
+      
+      // If cloud sync is enabled, also save to firestore
+      if (updated.enableCloudSync) {
+        try {
+            const { syncService } = await import('../../lib/firebaseService');
+            await syncService.saveSettings(updated);
+        } catch (err) {
+            console.error("Cloud settings sync failed:", err);
+        }
+      }
+      
       setTimeout(() => setIsSaving(false), 1000);
     }
   };
