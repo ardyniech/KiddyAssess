@@ -126,7 +126,7 @@ function App() {
       try {
         // Local Save
         await Promise.all([
-          db.students.clear().then(() => db.students.bulkAdd(students)),
+          db.students.bulkPut(students),
           saveAssessments(assessments)
         ]);
         

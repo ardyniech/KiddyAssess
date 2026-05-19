@@ -32,8 +32,11 @@ export function OrganismPDFPreview({ student, aspects, allScores, globalProgress
   const [pendingShare, setPendingShare] = useState<{file: File, name: string} | null>(null);
   const [profile, setProfile] = useState<SchoolProfile | null>(null);
 
-  useEffect(() => {
-    async function loadResources() {
+  const [isLoadingResources, setIsLoadingResources] = useState(true);
+
+  const loadResources = useCallback(async () => {
+    setIsLoadingResources(true);
+    try {
       const photos = await db.photos.where('studentId').equals(student.id).toArray();
       const schoolP = await getSchoolProfile();
       
@@ -74,7 +77,12 @@ export function OrganismPDFPreview({ student, aspects, allScores, globalProgress
       }));
       
       setStudentPhotos(processedPhotos);
+    } finally {
+      setIsLoadingResources(false);
     }
+  }, [student.id]);
+
+  useEffect(() => {
     loadResources();
     
     // Populate with system offline narratives on first load to save API calls
@@ -89,7 +97,7 @@ export function OrganismPDFPreview({ student, aspects, allScores, globalProgress
         }
         setNarratives(newNarratives);
     }
-  }, [student.id, allScores, profile?.useAINarrative]);
+  }, [student.id, allScores, profile?.useAINarrative, loadResources]);
 
   const [generatingAspects, setGeneratingAspects] = useState<Record<string, boolean>>({});
 
@@ -394,8 +402,16 @@ export function OrganismPDFPreview({ student, aspects, allScores, globalProgress
           )}
           <div className="flex gap-2">
             <button
+                onClick={loadResources}
+                disabled={isLoadingResources}
+                className="flex items-center justify-center p-2.5 glass-card hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-all border-black/5"
+                title="Refresh Foto & Data"
+            >
+                <RefreshCw size={16} className={cn(isLoadingResources && "animate-spin")} />
+            </button>
+            <button
                 onClick={() => exportPDF(false)}
-                disabled={isExporting || totalCompletedIndicators < 1}
+                disabled={isExporting || isLoadingResources || totalCompletedIndicators < 1}
                 className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-white rounded-xl text-xs font-black tracking-tight shadow-md disabled:opacity-50 transition-all active:scale-95"
             >
                 {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
@@ -436,7 +452,7 @@ export function OrganismPDFPreview({ student, aspects, allScores, globalProgress
                 
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 py-20 md:py-24">
                   <div 
-                    className="flex flex-col justify-between gap-8 p-[20mm] md:p-[25mm] rounded-[2px] shrink-0 pdf-font-fix pdf-compat overflow-hidden relative bg-white" 
+                    className="flex flex-col justify-between gap-8 px-[18mm] py-[25mm] md:px-[22mm] md:py-[30mm] rounded-[2px] shrink-0 pdf-font-fix pdf-compat overflow-hidden relative bg-white" 
                     id={`pdf-page-${aspect.id}`} 
                     style={{ 
                       width: `${pWidth}mm`, 
@@ -495,8 +511,7 @@ export function OrganismPDFPreview({ student, aspects, allScores, globalProgress
                     </div>
                   </div>
   
-                  {/* Assessment Content */}
-                  <div className="relative group/narrative flex flex-col justify-center shrink">
+                  <div className="relative group/narrative flex flex-col justify-center shrink overflow-hidden">
                     <div className="flex items-center justify-between mb-2 shrink-0">
                         <div className="flex items-center gap-3">
                             <FileText size={16} style={{ color: '#0f172a' }} />
@@ -514,7 +529,7 @@ export function OrganismPDFPreview({ student, aspects, allScores, globalProgress
                           </button>
                         )}
                     </div>
-                    <div className="text-[12px] leading-relaxed text-justify font-medium px-4 border-l-2 whitespace-pre-wrap overflow-hidden" style={{ color: '#334155', tabSize: 4, borderColor: '#e2e8f0' }}>
+                    <div className="text-[12px] leading-relaxed text-justify font-medium px-4 border-l-2 whitespace-pre-wrap overflow-hidden" style={{ color: '#334155', tabSize: 4, borderColor: '#e2e8f0', maxHeight: '85mm' }}>
                       {content.narrative || "Sedang memproses narasi penilaian... Mohon berikan 1 indikator skor terlebih dahulu jika belum."}
                     </div>
                   </div>

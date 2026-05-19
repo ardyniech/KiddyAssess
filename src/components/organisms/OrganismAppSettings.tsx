@@ -524,6 +524,37 @@ export const OrganismAppSettings: React.FC<{ isOpen: boolean; onClose: () => voi
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="md:col-span-2 flex flex-col items-center justify-center p-6 glass-panel rounded-3xl border-black/5 gap-4">
+                                <div className="w-24 h-24 bg-black/5 dark:bg-white/5 rounded-2xl flex items-center justify-center overflow-hidden border-2 border-dashed border-black/10 transition-all hover:border-sky-500 relative group">
+                                    {schoolProfile.logoUrl ? (
+                                        <img src={schoolProfile.logoUrl} className="w-full h-full object-contain" alt="School Logo" />
+                                    ) : (
+                                        <School className="text-muted" size={40} />
+                                    )}
+                                    <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-all">
+                                        <Upload className="text-white" size={20} />
+                                        <input 
+                                            type="file" 
+                                            accept="image/*" 
+                                            className="hidden" 
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => {
+                                                        setSchoolProfile({ ...schoolProfile, logoUrl: reader.result as string });
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                </div>
+                                <div className="text-center">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted block mb-1">Logo Satuan Pendidikan</span>
+                                    <span className="text-[9px] font-medium opacity-40">Format PNG/JPG, Maks 1MB</span>
+                                </div>
+                            </div>
                             <div className="space-y-4">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted ml-1">Nama Satuan Pendidikan</label>
                                 <AtomInput 

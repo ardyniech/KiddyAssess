@@ -51,7 +51,7 @@ async function startServer() {
         { "narrative": "teks narasi...", "parentAdvice": "teks saran orang tua..." }
       `;
 
-      const result = await ai.models.generateContent({
+      const modelResponse = await ai.models.generateContent({ 
         model: "gemini-3.1-flash-lite", 
         contents: prompt,
         config: {
@@ -59,10 +59,8 @@ async function startServer() {
         }
       });
 
-      const responseText = result.text;
-      const data = JSON.parse(responseText);
-
-      res.json(data);
+      const responseText = modelResponse.text || "";
+      res.json(JSON.parse(responseText));
     } catch (error: any) {
       console.error("Gemini Error:", error);
       
