@@ -9,13 +9,16 @@ export const generateStudentNarrative = async (
   studentName: string,
   aspectName: string,
   indicators: any[],
-  scores: Record<string, string>
+  scores: Record<string, string>,
+  tone?: string,
+  customNotes?: string,
+  lengthTarget?: string
 ) => {
   try {
     const response = await fetch('/api/generate-narrative', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ studentName, aspectName, indicators, scores })
+      body: JSON.stringify({ studentName, aspectName, indicators, scores, tone, customNotes, lengthTarget })
     });
     
     if (!response.ok) {
@@ -27,5 +30,30 @@ export const generateStudentNarrative = async (
   } catch (err) {
     console.error("AI Error:", err);
     throw err; // re-throw so the component knows it failed
+  }
+};
+
+export const refineStudentText = async (
+  text: string,
+  aspectName: string,
+  action: "polish" | "shorten" | "constructive" | "shorten-advice"
+) => {
+  try {
+    const response = await fetch('/api/refine-text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, aspectName, action })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Refinement failed');
+    }
+
+    const data = await response.json();
+    return data.refinedText as string;
+  } catch (err) {
+    console.error("Refine Text Error:", err);
+    throw err;
   }
 };

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "motion/react";
 
 interface OrganismStudentManagerProps {
   students: Student[];
+  getStudentProgress: (sid: string) => number;
   onAddStudent: (student: Omit<Student, "id">) => void;
   onUpdateStudent: (student: Student) => void;
   onDeleteStudent: (studentId: string) => void;
@@ -17,6 +18,7 @@ interface OrganismStudentManagerProps {
 
 export function OrganismStudentManager({ 
   students, 
+  getStudentProgress,
   onAddStudent, 
   onUpdateStudent, 
   onDeleteStudent, 
@@ -109,7 +111,7 @@ export function OrganismStudentManager({
                           studentClass={student.class}
                           semester={student.semester}
                           photoUrl={student.photoUrl}
-                          progress={0} 
+                          progress={getStudentProgress(student.id)} 
                           active={activeStudentId === student.id}
                           onClick={() => onSelectStudent(student)}
                         />

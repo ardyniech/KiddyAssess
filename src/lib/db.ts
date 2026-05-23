@@ -45,6 +45,25 @@ export async function loadAssessments(): Promise<StudentAssessment> {
   return record?.data || {};
 }
 
+export interface SavedNarrative {
+  narrative: string;
+  advice: string;
+  tone?: string;
+  customNotes?: string;
+  lengthTarget?: 'short' | 'standard';
+}
+
+export type StudentNarratives = Record<string, Record<string, SavedNarrative>>; // studentId -> aspectId -> SavedNarrative
+
+export async function saveNarrativesLocal(data: StudentNarratives) {
+  return await db.assessments.put({ id: 'comment_narratives', data: data as any });
+}
+
+export async function loadNarrativesLocal(): Promise<StudentNarratives> {
+  const record = await db.assessments.get('comment_narratives');
+  return (record?.data as unknown as StudentNarratives) || {};
+}
+
 // Photo helpers
 export async function savePhoto(studentId: string, aspectId: string, indicatorId: string, blob: Blob) {
   // Check if existing photo exists for this specific point

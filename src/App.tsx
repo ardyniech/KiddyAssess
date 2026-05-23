@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Student, StudentAssessment, AssessmentScale, ScoreData, SchoolProfile } from "./types";
+import { OrganismDashboard } from "./components/organisms/OrganismDashboard";
 import { ASPECTS } from "./constants";
-import { db, saveAssessments, loadAssessments } from "./lib/db";
+import { useCurriculum } from "./context/CurriculumContext";
+import { db, saveAssessments, loadAssessments, saveNarrativesLocal, loadNarrativesLocal, StudentNarratives, SavedNarrative } from "./lib/db";
 import { auth, signInWithGoogle, logout, testConnection } from "./lib/firebase";
 import { syncService } from "./lib/firebaseService";
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -13,35 +15,40 @@ import { OrganismAppSettings } from "./components/organisms/OrganismAppSettings"
 import { ThemeProvider, useAppTheme } from "./context/ThemeContext";
 import { AtomText, AtomBadge } from "./components/atoms/CommonAtoms";
 import { motion, AnimatePresence } from "motion/react";
-import { LayoutDashboard, FileText, Settings, Users, ChevronLeft, ChevronRight, CheckCircle2, Plus, ArrowRight, School, Sparkles, LogIn, Github, LogOut } from "lucide-react";
+import { LayoutDashboard, FileText, Settings, Users, ChevronLeft, ChevronRight, CheckCircle2, Plus, ArrowRight, School, Sparkles, LogIn, Globe, LogOut } from "lucide-react";
 import { cn } from "./lib/utils";
 import { getSchoolProfile } from "./services/settingsService";
 
 import { AuthProvider } from "./context/AuthContext";
+import { CurriculumProvider } from "./context/CurriculumContext";
 
 export default function RootApp() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <App />
+        <CurriculumProvider>
+          <App />
+        </CurriculumProvider>
       </ThemeProvider>
     </AuthProvider>
   );
 }
 
 function App() {
+  const { aspects: curriculumAspects } = useCurriculum();
+  const aspects = curriculumAspects.length > 0 ? curriculumAspects : ASPECTS;
   const { theme: appTheme } = useAppTheme();
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [students, setStudents] = useState<Student[]>([]);
   const [assessments, setAssessments] = useState<StudentAssessment>({});
+  const [narratives, setNarratives] = useState<StudentNarratives>({});
   const [activeStudentId, setActiveStudentId] = useState<string | null>(null);
   const [activeAspectIndex, setActiveAspectIndex] = useState(0);
-  const [view, setView] = useState<"assessment" | "report">("assessment");
+  const [view, setView] = useState<"dashboard" | "assessment" | "report">("dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [syncErrors, setSyncErrors] = useState<string[]>([]);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
@@ -63,30 +70,18 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Theme management
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("kiddy_theme") as "light" | "dark";
-    if (savedTheme) {
-      setTheme(savedTheme);
-    }
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    localStorage.setItem("kiddy_theme", theme);
-  }, [theme]);
-
 
   // 1. Immediate Local Save (Robust Offline-First)
   useEffect(() => {
     if (!user || !isLoaded) return;
-    if (students.length === 0 && Object.keys(assessments).length === 0) return;
+    if (students.length === 0 && Object.keys(assessments).length === 0 && Object.keys(narratives).length === 0) return;
 
     const saveLocal = async () => {
       try {
         await Promise.all([
           db.students.bulkPut(students),
-          saveAssessments(assessments)
+          saveAssessments(assessments),
+          saveNarrativesLocal(narratives)
         ]);
         
         localStorage.setItem("kiddy_active_student_id", JSON.stringify(activeStudentId));
@@ -100,7 +95,7 @@ function App() {
     };
 
     saveLocal();
-  }, [students, assessments, activeStudentId, activeAspectIndex, view, user]);
+  }, [students, assessments, narratives, activeStudentId, activeAspectIndex, view, user, isLoaded]);
 
   // 2. Debounced Cloud Sync
   useEffect(() => {
@@ -126,7 +121,7 @@ function App() {
           // Sync Assessments
           for (const sid of Object.keys(assessments)) {
             try {
-               await syncService.saveAssessment(sid, assessments[sid]);
+               await syncService.saveAssessment(sid, assessments[sid], narratives[sid] || null);
             } catch (err) {
                errors.push(`Assessment failed`);
                console.error(err);
@@ -161,12 +156,16 @@ function App() {
       setSyncStatus('Memuat data...');
       try {
         // Parallel load: Cloud and Local
-        const [cloudStudents, cloudAssessments, localStudents, localAssessments] = await Promise.all([
+        const [cloudStudents, cloudAssessmentsResult, localStudents, localAssessments, localNarratives] = await Promise.all([
           syncService.getStudents(),
           syncService.getAssessments(),
           db.students.toArray(),
-          loadAssessments()
+          loadAssessments(),
+          loadNarrativesLocal()
         ]);
+
+        const cloudAssessments = cloudAssessmentsResult.assessments || {};
+        const cloudNarratives = cloudAssessmentsResult.narratives || {};
 
         console.log("Init Data: ", { cloudLen: cloudStudents.length, localLen: localStudents.length });
 
@@ -174,6 +173,7 @@ function App() {
         // We initialize with Local first, then potentially update with Cloud.
         let finalStudents = localStudents;
         let finalAssessments = localAssessments;
+        let finalNarratives = localNarratives;
 
         // If Cloud exists, we evaluate if we should use it.
         // For simplicity: If local is empty, use cloud.
@@ -182,6 +182,7 @@ function App() {
             if (localStudents.length === 0) {
                 finalStudents = cloudStudents;
                 finalAssessments = cloudAssessments;
+                finalNarratives = cloudNarratives;
             } else {
                 // Determine which is newer. 
                 // We'll compare the max updatedAt from cloud vs local.
@@ -192,6 +193,7 @@ function App() {
                     console.log("Cloud is newer. Updating local.");
                     finalStudents = cloudStudents;
                     finalAssessments = cloudAssessments;
+                    finalNarratives = cloudNarratives;
                 } else {
                     console.log("Local is newer or equal. Keeping local.");
                 }
@@ -200,12 +202,14 @@ function App() {
 
         setStudents(finalStudents);
         setAssessments(finalAssessments);
+        setNarratives(finalNarratives);
 
         // Background: Ensure Local DB is exactly what we have in state
         if (finalStudents.length > 0) {
             await db.students.clear();
             await db.students.bulkAdd(finalStudents);
             await saveAssessments(finalAssessments);
+            await saveNarrativesLocal(finalNarratives);
         }
         
         // Restore meta-state
@@ -238,7 +242,7 @@ function App() {
     
     students.forEach(student => {
       if (!newAssessments[student.id]) newAssessments[student.id] = {};
-      ASPECTS.forEach(aspect => {
+      aspects.forEach(aspect => {
         const aspectScores: ScoreData = {};
         aspect.indicators.forEach(indicator => {
           // Assign realistic variety: mostly BSH (2) and BSB (3), sometimes MB (1)
@@ -254,8 +258,23 @@ function App() {
   };
 
   const activeStudent = students.find(s => s.id === activeStudentId);
-  const currentAspect = ASPECTS[activeAspectIndex];
+  const currentAspect = aspects[activeAspectIndex];
   const currentScores = activeStudentId ? (assessments[activeStudentId]?.[currentAspect.id] || {}) : {};
+
+  // Calculate actual progress for each student
+  const getStudentProgress = useCallback((sid: string) => {
+    const studentAssess = assessments[sid];
+    if (!studentAssess) return 0;
+    
+    let filled = 0;
+    const totalIndicators = aspects.reduce((acc, aspect) => acc + aspect.indicators.length, 0);
+    
+    aspects.forEach(aspect => {
+      filled += Object.keys(studentAssess[aspect.id] || {}).length;
+    });
+    
+    return totalIndicators > 0 ? (filled / totalIndicators) * 100 : 0;
+  }, [assessments]);
 
   const handleAddStudent = (data: Omit<Student, "id">) => {
     const newStudent: Student = {
@@ -313,22 +332,6 @@ function App() {
     });
   };
 
-
-  const TOTAL_INDICATORS = ASPECTS.reduce((acc, aspect) => acc + aspect.indicators.length, 0);
-
-  const calculateGlobalProgress = (sid: string) => {
-    const studentAssess = assessments[sid];
-    if (!studentAssess) return 0;
-    
-    let filled = 0;
-    ASPECTS.forEach(aspect => {
-      filled += Object.keys(studentAssess[aspect.id] || {}).length;
-    });
-    
-    return (filled / TOTAL_INDICATORS) * 100;
-  };
-
-  const activeGlobalProgress = activeStudentId ? calculateGlobalProgress(activeStudentId) : 0;
 
   if (authLoading) return null;
 
@@ -444,11 +447,13 @@ function App() {
             >
               <OrganismStudentManager
                 students={students}
+                getStudentProgress={getStudentProgress}
                 onAddStudent={handleAddStudent}
                 onUpdateStudent={handleUpdateStudent}
                 onDeleteStudent={handleDeleteStudent}
                 onSelectStudent={(s) => {
                   setActiveStudentId(s.id);
+                  setView("assessment");
                   setIsSidebarOpen(false);
                 }}
                 activeStudentId={activeStudentId || undefined}
@@ -462,197 +467,142 @@ function App() {
       <OrganismHeader 
         studentName={activeStudent?.name || ""}
         studentClass={activeStudent?.class || ""}
-        globalProgress={activeGlobalProgress}
+        globalProgress={activeStudentId ? getStudentProgress(activeStudentId) : 0}
         onMenuClick={() => setIsSidebarOpen(true)}
         onSettingsClick={() => setIsSettingsOpen(true)}
-        onBackToDashboard={activeStudentId ? () => setActiveStudentId(null) : undefined}
-        theme={theme}
-        onThemeToggle={() => setTheme(prev => prev === "dark" ? "light" : "dark")}
+        onBackToDashboard={() => {
+            setActiveStudentId(null);
+            setView("dashboard");
+        }}
       />
 
       <main className="flex-1 overflow-hidden flex flex-col relative z-10">
-        {!activeStudentId ? (
-          <div className="flex-1 overflow-y-auto scaled-p-4 md:scaled-p-8 scaled-m-2 custom-scrollbar">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="max-w-6xl mx-auto space-y-5 md:scaled-gap-4"
-            >
-              <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-4 border-b border-slate-200 dark:border-slate-800">
-                <div className="flex items-center gap-6">
-                  {user?.photoURL && (
-                    <motion.div 
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="w-20 h-20 rounded-2xl overflow-hidden shadow-lg"
-                    >
-                      <img src={user.photoURL} className="w-full h-full object-cover" alt="Profile" />
-                    </motion.div>
-                  )}
-                  <div>
-                    <h1 className="text-4xl md:text-6xl font-extrabold tracking-tighter text-slate-900 dark:text-white mb-2">
-                       {user?.displayName?.split(' ')[0] || "Guru"}
-                    </h1>
-                    <p className="text-sm text-slate-500 uppercase tracking-[0.2em] font-bold">KiddyAssess Dashboard</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col items-start md:items-end gap-1">
-                    <div className="text-4xl font-black text-slate-900 dark:text-white leading-none">
-                        {students.length}
-                    </div>
-                    <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">Murid Terdaftar</div>
-                </div>
-              </header>
-
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                {/* Action Card: Add Student */}
-                <div className="col-span-2 lg:col-span-1">
-                   <button 
-                     onClick={() => setIsSidebarOpen(true)}
-                     className="w-full h-full min-h-[100px] md:min-h-[160px] rounded-2xl md:rounded-[2.5rem] border-2 border-dashed border-black/10 dark:border-white/10 hover:border-sky-500/50 hover:bg-sky-500/5 transition-all flex flex-col items-center justify-center gap-2 group p-2 md:p-3"
-                   >
-                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-sky-500 group-hover:text-white transition-all">
-                        <Plus className="w-5 h-5 md:w-6 md:h-6" />
-                      </div>
-                      <div className="text-center">
-                         <div className="text-sm md:text-lg font-bold text-slate-800 dark:text-white">Kelola Murid</div>
-                         <div className="hidden md:block text-xs text-slate-500 dark:text-slate-400 mt-1">Daftarkan data baru</div>
-                      </div>
-                   </button>
-                </div>
-                
-                {/* Student Selection Cards */}
-                {students.map((student, idx) => {
-                  const progress = calculateGlobalProgress(student.id);
-                  return (
-                    <motion.div
-                      key={student.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="h-full"
-                    >
-                      <div 
-                        onClick={() => setActiveStudentId(student.id)}
-                        className={cn(
-                          "group glass-card p-2 md:p-3 rounded-2xl md:rounded-[2.5rem] hover:bg-white/10 transition-all cursor-pointer h-full flex flex-col justify-between overflow-hidden relative",
-                          idx % 3 === 0 ? "dark:neon-cyan" : idx % 3 === 1 ? "dark:neon-pink" : "dark:neon-emerald"
-                        )}
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-                        <div className="flex justify-between items-start mb-1.5 md:mb-2 relative z-10">
-                          <div className={cn(
-                            "w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-3xl text-white font-black text-sm md:text-xl flex items-center justify-center shadow-lg group-hover:rotate-6 transition-transform",
-                            idx % 3 === 0 ? "bg-cyan-500 shadow-cyan-500/20" : idx % 3 === 1 ? "bg-pink-500 shadow-pink-500/20" : "bg-emerald-500 shadow-emerald-500/20"
-                          )}>
-                            {student.name.split(' ').map(n=>n[0]).join('').slice(0,2)}
-                          </div>
-                          <div className="w-6 h-6 md:w-10 md:h-10 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover:bg-slate-900 dark:group-hover:bg-white dark:group-hover:text-black transition-colors">
-                             <ArrowRight className="w-3 h-3 md:w-5 md:h-5 text-slate-400 group-hover:text-inherit" />
-                          </div>
-                        </div>
-                        <div>
-                          <h3 className="text-xl md:text-3xl font-black truncate mb-0.5 group-hover:text-sky-400 transition-colors text-slate-800 dark:text-white">{student.name}</h3>
-                          <div className="text-sm md:text-base font-bold text-slate-500 dark:text-white/30 tracking-tight mb-2 md:mb-3">{student.class}</div>
-                          
-                          <div className="space-y-1">
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs md:text-sm font-bold text-slate-500 dark:text-white/20 tracking-tight">Progress</span>
-                              <span className={cn("text-xs md:text-base font-black", progress === 100 ? "text-emerald-500" : "text-sky-500")}>
-                                {Math.round(progress)}%
-                              </span>
-                            </div>
-                            <div className="w-full h-1.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
-                              <motion.div 
-                                initial={{ width: 0 }}
-                                animate={{ width: `${progress}%` }}
-                                className={cn(
-                                  "h-full transition-all duration-1000",
-                                  progress === 100 ? "bg-emerald-400" : "bg-sky-400"
-                                )}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-
-              {/* Guide/Stats Footer Interaction */}
-              <div className="glass-card p-2 md:p-3.5 rounded-2xl md:rounded-[3rem] border-sky-500/20 bg-gradient-to-r from-sky-500/5 to-transparent flex flex-col md:flex-row items-center justify-between gap-4 md:gap-8 overflow-hidden">
-                <div className="flex-1 text-center md:text-left p-2">
-                   <div className="flex items-center justify-center md:justify-start gap-2 mb-1.5 md:mb-2 text-color-primary">
-                      <Sparkles className="w-4 h-4 md:w-6 md:h-6" />
-                      <span className="text-sm md:text-base font-bold tracking-tight">Tips Profesional</span>
-                   </div>
-                   <h3 className="text-3xl md:text-5xl font-black mb-2 text-slate-900 dark:text-white leading-tight">
-                     {appTheme.content.bannerTitle}
-                   </h3>
-                   <p className="text-base md:text-2xl text-slate-600 dark:text-slate-400 leading-relaxed max-w-xl font-medium tracking-tight">
-                     {appTheme.content.bannerSubtitle}
-                   </p>
-                </div>
-                <div className="flex gap-2 w-full md:w-auto p-2">
-                  <div className="flex-1 md:flex-none p-3 md:p-5 bg-black/5 dark:bg-white/5 rounded-2xl text-center md:px-10 border border-black/5">
-                     <div className="text-xs md:text-sm font-bold text-slate-500 tracking-tight mb-1">Penyimpanan</div>
-                     <div className="text-emerald-500 font-bold text-sm md:text-base">Status Online</div>
-                  </div>
-                  <div className="flex-1 md:flex-none p-3 md:p-4 bg-sky-500 rounded-2xl shadow-2xl shadow-sky-500/30 text-center md:px-8">
-                     <div className="text-xs md:text-sm font-bold text-white/50 tracking-tight mb-1">Edisi Aplikasi</div>
-                     <div className="text-white font-bold text-sm md:text-base">Guru Pro v2.0</div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
+        {!activeStudentId || view === "dashboard" ? (
+          <OrganismDashboard 
+             students={students}
+             assessments={assessments}
+             aspects={aspects}
+             onSelectStudent={(sid) => {
+               if (sid) {
+                 setActiveStudentId(sid);
+                 setView("assessment");
+               }
+             }}
+          />
         ) : (
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* View Tabs */}
-            <div className="px-4 py-2 flex flex-col md:flex-row justify-center items-center gap-3 bg-black/5 dark:bg-black/10 shrink-0">
-              <nav className="flex gap-1 p-0.5 glass-panel rounded-lg">
-                <button 
-                  onClick={() => setView("assessment")}
-                  className={cn(
-                    "px-4 py-1.5 rounded-md text-[11px] font-bold transition-all",
-                    view === "assessment" ? "bg-sky-500/90 text-white shadow-md shadow-sky-500/20 backdrop-blur-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  )}
-                >
-                  Assessment Grid
-                </button>
-                <button 
-                  onClick={() => setView("report")}
-                  className={cn(
-                    "px-4 py-1.5 rounded-md text-[11px] font-bold transition-all",
-                    view === "report" ? "bg-sky-500/90 text-white shadow-md shadow-sky-500/20 backdrop-blur-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  )}
-                >
-                  Review Narasi
-                </button>
-              </nav>
+            {/* Unified Control & Agile Navigation Panel */}
+            <div className="w-full bg-white dark:bg-slate-950 border-b border-slate-250/20 dark:border-slate-800 shrink-0">
+              {/* Row 1: View Mode Switcher + Student Quick Link */}
+              <div className="px-3 py-1.5 flex flex-wrap items-center justify-between gap-3 bg-slate-50 dark:bg-slate-900/60">
+                <div className="flex items-center gap-1.5">
+                  <button 
+                    onClick={() => {
+                      setActiveStudentId(null);
+                      setView("dashboard");
+                    }}
+                    className="px-2 py-1 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] font-extrabold uppercase tracking-wide cursor-pointer flex items-center gap-1 shadow-xs transition-colors"
+                  >
+                    ← Beranda
+                  </button>
+                  <span className="text-[10px] font-black text-slate-350 dark:text-slate-700">|</span>
+                  <span className="text-[11px] font-black tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                    Murid: <span className="text-sky-500 font-extrabold">{activeStudent?.name}</span> ({activeStudent?.class})
+                  </span>
+                </div>
 
-              {view === "assessment" && (
-                <div className="flex items-center gap-1 glass-panel p-0.5 rounded-lg ml-0 md:ml-4">
-                  {ASPECTS.map((aspect, idx) => {
-                     const isDone = Object.keys(assessments[activeStudentId]?.[aspect.id] || {}).length >= aspect.indicators.length;
+                {/* Main Action View Switcher */}
+                <div className="flex gap-1 p-0.5 bg-slate-200/60 dark:bg-slate-900/80 rounded-xl border border-black/5">
+                  <button 
+                    onClick={() => setView("assessment")}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1",
+                      view === "assessment" 
+                        ? "bg-sky-500 text-white shadow-sm" 
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white"
+                    )}
+                  >
+                    Grid Nilai
+                  </button>
+                  <button 
+                    onClick={() => setView("report")}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1",
+                      view === "report" 
+                        ? "bg-sky-500 text-white shadow-sm" 
+                        : "text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white"
+                    )}
+                  >
+                    Review Narasi
+                  </button>
+                </div>
+              </div>
+
+              {/* Row 2: Aspect Jumper Navigation Grid */}
+              <div className="px-3 py-1.5 flex items-center gap-2 overflow-x-auto overflow-y-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] bg-white dark:bg-slate-950">
+                <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 bg-slate-100 dark:bg-slate-900 px-1.5 py-0.5 rounded shrink-0">
+                  Akses Cepat Aspek:
+                </span>
+                <div className="flex items-center gap-2 select-none shrink-0">
+                  {aspects.map((aspect, idx) => {
+                     const scoredIndicators = Object.keys(assessments[activeStudentId!]?.[aspect.id] || {}).length;
+                     const totalIndicators = aspect.indicators.length;
+                     const isDone = scoredIndicators >= totalIndicators;
+                     
+                     const studentNarrative = narratives[activeStudentId!]?.[aspect.id];
+                     const hasNarrative = !!studentNarrative?.narrative?.trim();
+                     const hasAdvice = !!studentNarrative?.advice?.trim();
+
+                     const isSelected = view === "assessment" ? activeAspectIndex === idx : false;
+
+                     let themeStyles = "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 bg-white dark:bg-slate-900";
+
+                     if (isSelected) {
+                       themeStyles = "border-sky-500 dark:border-sky-400 text-sky-700 dark:text-sky-350 bg-sky-500/10 font-bold ring-1 ring-sky-500/20";
+                     } else if (isDone && hasNarrative && hasAdvice) {
+                       themeStyles = "border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 bg-emerald-500/5 hover:bg-emerald-500/10";
+                     } else if (isDone || hasNarrative || hasAdvice) {
+                       themeStyles = "border-amber-200 dark:border-amber-500/20 text-amber-850 dark:text-amber-300 bg-amber-500/5 hover:bg-amber-500/10";
+                     }
+
+                     const shortAspectName = aspect.name.toLowerCase().includes("agama") ? "Agama & Moral" :
+                                             aspect.name.toLowerCase().includes("motorik") ? "Fisik Motorik" : "Kognitif";
+
                      return (
                       <button
                         key={aspect.id}
-                        onClick={() => setActiveAspectIndex(idx)}
+                        onClick={() => {
+                          if (view === "assessment") {
+                            setActiveAspectIndex(idx);
+                          } else {
+                            // Smooth scroll inside report preview
+                            const editorEl = document.getElementById(`aspect-editor-${aspect.id}`);
+                            const previewEl = document.getElementById(`aspect-preview-${aspect.id}`);
+                            const targetElement = editorEl || previewEl;
+                            if (targetElement) {
+                              targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
+                            }
+                          }
+                        }}
                         className={cn(
-                          "relative px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all",
-                          activeAspectIndex === idx ? "bg-sky-500/20 text-sky-600 dark:text-sky-300" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                          "px-2.5 py-1 text-xs font-bold leading-tight border transition-all duration-150 rounded-xl hover:scale-[1.01] active:scale-95 shrink-0 flex items-center gap-2 cursor-pointer shadow-xs",
+                          themeStyles
                         )}
                       >
-                        {aspect.name.split(' ')[0]}
-                        {isDone && <CheckCircle2 className="w-2 h-2 text-emerald-500 absolute -top-0.5 -right-0.5" />}
+                        <span className="font-extrabold truncate text-[11px]">{idx + 1}. {shortAspectName}</span>
+                        <div className="flex items-center gap-1 pl-1 border-l border-slate-200 dark:border-slate-800 text-[9px]">
+                          <span className={cn("font-black", isDone ? "text-emerald-500" : "text-slate-500")}>
+                            {scoredIndicators}/{totalIndicators}
+                          </span>
+                          {hasNarrative && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse ml-0.5" title="Narasi Terisi" />
+                          )}
+                        </div>
                       </button>
                      );
                   })}
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Content Area */}
@@ -686,10 +636,17 @@ function App() {
                   >
                     <OrganismPDFPreview 
                       student={activeStudent!}
-                      aspects={ASPECTS}
+                      aspects={aspects}
                       allScores={assessments[activeStudentId!] || {}}
-                      globalProgress={activeGlobalProgress}
+                      globalProgress={getStudentProgress(activeStudentId!)}
                       onOpenSettings={() => setIsSettingsOpen(true)}
+                      savedNarratives={narratives[activeStudentId!] || {}}
+                      onNarrativesChange={(studentNarratives) => {
+                        setNarratives(prev => ({
+                          ...prev,
+                          [activeStudentId!]: studentNarratives
+                        }));
+                      }}
                     />
                   </motion.div>
                 )}

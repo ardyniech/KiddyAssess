@@ -92,35 +92,43 @@ export const syncService = {
   },
 
   // --- Assessments ---
-  async getAssessments(): Promise<StudentAssessment> {
-    if (!auth.currentUser) return {};
+  async getAssessments(): Promise<{ assessments: StudentAssessment; narratives: Record<string, any> }> {
+    if (!auth.currentUser) return { assessments: {}, narratives: {} };
     const path = 'assessments';
     try {
       const q = query(collection(db, path), where('ownerId', '==', auth.currentUser.uid));
       const snapshot = await getDocs(q);
-      const data: StudentAssessment = {};
+      const assessments: StudentAssessment = {};
+      const narratives: Record<string, any> = {};
       snapshot.docs.forEach(d => {
         const docData = d.data();
-        data[d.id] = docData.scores;
+        assessments[d.id] = docData.scores || {};
+        if (docData.narratives) {
+          narratives[d.id] = docData.narratives;
+        }
       });
-      return data;
+      return { assessments, narratives };
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, path);
-      return {};
+      return { assessments: {}, narratives: {} };
     }
   },
 
-  async saveAssessment(studentId: string, scores: any) {
+  async saveAssessment(studentId: string, scores: any, narratives: any = null) {
     if (!auth.currentUser) return;
     const path = `assessments/${studentId}`;
     try {
       const now = Date.now();
-      await setDoc(doc(db, 'assessments', studentId), {
+      const payload: any = {
         studentId,
         scores,
         ownerId: auth.currentUser.uid,
         updatedAt: now
-      });
+      };
+      if (narratives) {
+        payload.narratives = narratives;
+      }
+      await setDoc(doc(db, 'assessments', studentId), payload, { merge: true });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
     }

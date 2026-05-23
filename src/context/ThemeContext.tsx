@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 interface AppTheme {
+  appearance: 'light' | 'dark' | 'system';
+  isMonochrome: boolean;
   primaryColor: string;
   light: {
     textMain: string;
@@ -42,22 +44,24 @@ interface AppTheme {
 }
 
 const defaultTheme: AppTheme = {
+  appearance: 'system',
+  isMonochrome: false,
   primaryColor: '#38bdf8',
   light: {
     textMain: '#0f172a',
-    textMuted: '#64748b',
+    textMuted: '#475569',
     background: '#f8fafc',
-    cardBg: 'rgba(255, 255, 255, 0.7)',
+    cardBg: 'rgba(255, 255, 255, 0.75)',
     aspectTitle: '#0f172a',
-    indicatorText: '#64748b',
+    indicatorText: '#334155',
   },
   dark: {
-    textMain: '#f8fafc',
-    textMuted: '#94a3b8',
+    textMain: '#ffffff',
+    textMuted: '#cbd5e1',
     background: '#020617',
-    cardBg: 'rgba(15, 23, 42, 0.5)',
-    aspectTitle: '#f8fafc',
-    indicatorText: '#94a3b8',
+    cardBg: 'rgba(15, 23, 42, 0.6)',
+    aspectTitle: '#ffffff',
+    indicatorText: '#e2e8f0',
   },
   gradients: {
     from: '#f8fafc',
@@ -84,6 +88,7 @@ const defaultTheme: AppTheme = {
 
 interface ThemeContextType {
   theme: AppTheme;
+  resolvedTheme: 'light' | 'dark';
   updateTheme: (updates: Partial<AppTheme>) => void;
   resetTheme: () => void;
 }
@@ -107,30 +112,77 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
+
   useEffect(() => {
     const root = document.documentElement;
     
+    // Resolve Appearance
+    let targetTheme: 'light' | 'dark' = 'light';
+    if (theme.appearance === 'system') {
+      targetTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } else {
+      targetTheme = theme.appearance;
+    }
+    
+    setResolvedTheme(targetTheme);
+    root.classList.toggle('dark', targetTheme === 'dark');
+    root.classList.toggle('monochrome', theme.isMonochrome);
+
+    const effectiveTheme = theme.isMonochrome ? {
+      ...theme,
+      primaryColor: '#000000',
+      light: {
+        textMain: '#000000',
+        textMuted: '#666666',
+        background: '#ffffff',
+        cardBg: '#f0f0f0',
+        aspectTitle: '#000000',
+        indicatorText: '#333333',
+      },
+      dark: {
+        textMain: '#ffffff',
+        textMuted: '#aaaaaa',
+        background: '#000000',
+        cardBg: '#111111',
+        aspectTitle: '#ffffff',
+        indicatorText: '#cccccc',
+      }
+    } : theme;
+
+    // System theme listener
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      if (theme.appearance === 'system') {
+        const newTheme = mediaQuery.matches ? 'dark' : 'light';
+        setResolvedTheme(newTheme);
+        root.classList.toggle('dark', newTheme === 'dark');
+      }
+    };
+    
+    mediaQuery.addEventListener('change', handleChange);
+    
     // Primary
-    root.style.setProperty('--color-primary', theme.primaryColor);
+    root.style.setProperty('--color-primary', effectiveTheme.primaryColor);
     
     // Light Group
-    root.style.setProperty('--light-text-main', theme.light.textMain);
-    root.style.setProperty('--light-text-muted', theme.light.textMuted);
-    root.style.setProperty('--light-bg', theme.light.background);
-    root.style.setProperty('--light-card-bg', theme.light.cardBg);
-    root.style.setProperty('--light-aspect-title', theme.light.aspectTitle);
-    root.style.setProperty('--light-indicator-text', theme.light.indicatorText);
+    root.style.setProperty('--light-text-main', effectiveTheme.light.textMain);
+    root.style.setProperty('--light-text-muted', effectiveTheme.light.textMuted);
+    root.style.setProperty('--light-bg', effectiveTheme.light.background);
+    root.style.setProperty('--light-card-bg', effectiveTheme.light.cardBg);
+    root.style.setProperty('--light-aspect-title', effectiveTheme.light.aspectTitle);
+    root.style.setProperty('--light-indicator-text', effectiveTheme.light.indicatorText);
 
     // Dark Group
-    root.style.setProperty('--dark-text-main', theme.dark.textMain);
-    root.style.setProperty('--dark-text-muted', theme.dark.textMuted);
-    root.style.setProperty('--dark-bg', theme.dark.background);
-    root.style.setProperty('--dark-card-bg', theme.dark.cardBg);
-    root.style.setProperty('--dark-aspect-title', theme.dark.aspectTitle);
-    root.style.setProperty('--dark-indicator-text', theme.dark.indicatorText);
+    root.style.setProperty('--dark-text-main', effectiveTheme.dark.textMain);
+    root.style.setProperty('--dark-text-muted', effectiveTheme.dark.textMuted);
+    root.style.setProperty('--dark-bg', effectiveTheme.dark.background);
+    root.style.setProperty('--dark-card-bg', effectiveTheme.dark.cardBg);
+    root.style.setProperty('--dark-aspect-title', effectiveTheme.dark.aspectTitle);
+    root.style.setProperty('--dark-indicator-text', effectiveTheme.dark.indicatorText);
 
     // Global
-    root.style.setProperty('--app-radius', theme.borderRadius);
+    root.style.setProperty('--app-radius', effectiveTheme.borderRadius);
     root.style.setProperty('--font-family', theme.fontFamily);
     root.style.setProperty('--glass-opacity', String(theme.glassOpacity));
     root.style.setProperty('--base-font-size', `${theme.systemFontSize}px`);
@@ -149,6 +201,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     root.style.setProperty('--card-font-color', theme.layout.cardFontColor);
 
     localStorage.setItem('kiddyassess-theme', JSON.stringify(theme));
+    
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, [theme]);
 
   const updateTheme = (updates: Partial<AppTheme>) => {
@@ -158,7 +212,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const resetTheme = () => setTheme(defaultTheme);
 
   return (
-    <ThemeContext.Provider value={{ theme, updateTheme, resetTheme }}>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, updateTheme, resetTheme }}>
       {children}
     </ThemeContext.Provider>
   );

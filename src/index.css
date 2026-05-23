@@ -216,3 +216,28 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
 }
+
+@layer base {
+  .monochrome, .monochrome body {
+    background-color: #ffffff !important;
+    background-image: none !important;
+    color: #000000 !important;
+  }
+  .monochrome * {
+    border-color: #000000 !important;
+    color: #000000 !important;
+  }
+  .monochrome .bg-slate-50, 
+  .monochrome .bg-slate-100, 
+  .monochrome .bg-slate-200, 
+  .monochrome .bg-slate-900, 
+  .monochrome .bg-slate-800,
+  .monochrome .bg-sky-50, 
+  .monochrome .bg-sky-500, 
+  .monochrome .bg-sky-600,
+  .monochrome .bg-white,
+  .monochrome .dark\:bg-slate-900,
+  .monochrome .dark\:bg-slate-800 {
+    background-color: #ffffff !important;
+  }
+}
