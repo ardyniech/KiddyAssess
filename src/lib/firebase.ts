@@ -1,10 +1,24 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer, getDoc } from 'firebase/firestore';
+import { 
+  initializeFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager,
+  doc, 
+  getDocFromServer, 
+  getDoc 
+} from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+// Initialize Firestore with robust persistent multi-tab offline cache
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+  })
+}, firebaseConfig.firestoreDatabaseId);
+
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
@@ -19,7 +33,8 @@ export async function testConnection() {
   }
 }
 
-export async function isAdmin(uid: string): Promise<boolean> {
+export async function isAdmin(uid: string, email?: string | null): Promise<boolean> {
+  if (email === 'ardy.syafii@gmail.com') return true;
   try {
     const adminDoc = await getDoc(doc(db, 'admins', uid));
     return adminDoc.exists();

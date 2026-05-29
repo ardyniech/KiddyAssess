@@ -1,6 +1,6 @@
 {
-  "name": "KiddyAssess - Guru TK",
-  "description": "Aplikasi penilaian perkembangan anak usia dini (TK/PAUD) yang efisien dengan antarmuka modern terinspirasi aplikasi cuaca. Dilengkapi generator narasi otomatis berbasis AI Gemini 1.5 Flash, manajemen bukti foto, dan ekspor laporan PDF 3 halaman per aspek perkembangan murid yang profesional.",
+  "name": "KiddyAssess",
+  "description": "Ekosistem digital terpadu untuk manajemen sekolah, penilaian kurikulum, dan administrasi pendidikan. Menghubungkan Guru, Kepala Sekolah, dan Admin dalam satu platform cerdas dengan dukungan otomasi AI.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

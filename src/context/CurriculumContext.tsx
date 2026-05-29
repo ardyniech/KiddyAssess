@@ -1,17 +1,19 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Aspect } from '../types';
-import { getCurriculum } from '../services/curriculumService';
+import { getCurriculum, saveCurriculum } from '../services/curriculumService';
 
 interface CurriculumContextType {
   aspects: Aspect[];
   loading: boolean;
   refreshCurriculum: () => void;
+  updateAspects: (newAspects: Aspect[]) => Promise<void>;
 }
 
 const CurriculumContext = createContext<CurriculumContextType>({
   aspects: [],
   loading: true,
   refreshCurriculum: () => {},
+  updateAspects: async () => {},
 });
 
 export const CurriculumProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -25,12 +27,17 @@ export const CurriculumProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setLoading(false);
   };
 
+  const updateAspects = async (newAspects: Aspect[]) => {
+    await saveCurriculum(newAspects);
+    setAspects(newAspects);
+  };
+
   useEffect(() => {
     load();
   }, []);
 
   return (
-    <CurriculumContext.Provider value={{ aspects, loading, refreshCurriculum: load }}>
+    <CurriculumContext.Provider value={{ aspects, loading, refreshCurriculum: load, updateAspects }}>
       {children}
     </CurriculumContext.Provider>
   );

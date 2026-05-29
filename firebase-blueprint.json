@@ -1,89 +1,46 @@
 {
   "entities": {
-    "Student": {
-      "title": "Student",
-      "description": "Data profil murid",
+    "KartikaTemplate": {
+      "title": "Kartika Template",
+      "description": "Storage for PDF report template",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
-        "class": { "type": "string" },
-        "semester": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" },
-        "ownerId": { "type": "string" }
+        "data": { "type": "string", "description": "Base64 encoded PDF" },
+        "updatedAt": { "type": "number" }
       },
-      "required": ["id", "name", "class", "semester", "ownerId"]
+      "required": ["id", "data", "updatedAt"]
     },
-    "Assessment": {
-      "title": "Assessment",
-      "description": "Data penilaian murid per aspek",
+    "KanbanTask": {
+      "title": "Kanban Task",
+      "description": "Professional collaborative progress task",
       "type": "object",
       "properties": {
-        "studentId": { "type": "string" },
-        "scores": { 
-          "type": "object",
-          "description": "Map of aspectId -> Map of indicatorId -> AssessmentScale"
-        },
-        "updatedAt": { "type": "string", "format": "date-time" },
-        "ownerId": { "type": "string" }
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "priority": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH"] },
+        "category": { "type": "string" },
+        "status": { "type": "string", "enum": ["TODO", "IN_PROGRESS", "DONE"] },
+        "createdBy": { "type": "string" },
+        "creatorRole": { "type": "string" },
+        "creatorEmail": { "type": "string" },
+        "assignedTo": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" }
       },
-      "required": ["studentId", "scores", "ownerId"]
-    },
-    "Settings": {
-      "title": "Settings",
-      "description": "Profil sekolah dan konfigurasi aplikasi",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "address": { "type": "string" },
-        "phone": { "type": "string" },
-        "email": { "type": "string" },
-        "principalName": { "type": "string" },
-        "teacherName": { "type": "string" },
-        "logoUrl": { "type": "string" },
-        "showSignature": { "type": "boolean" },
-        "showPhotos": { "type": "boolean" },
-        "useAINarrative": { "type": "boolean" },
-        "enableCloudSync": { "type": "boolean" },
-        "reportNote": { "type": "string" },
-        "updatedAt": { "type": "string", "format": "date-time" },
-        "ownerId": { "type": "string" }
-      },
-      "required": ["ownerId"]
-    },
-    "Photos": {
-      "title": "Photos",
-      "description": "Evidence metadata for assessments",
-      "type": "object",
-      "properties": {
-        "studentId": { "type": "string" },
-        "aspectId": { "type": "string" },
-        "indicatorId": { "type": "string" },
-        "url": { "type": "string" },
-        "caption": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "ownerId": { "type": "string" }
-      },
-      "required": ["studentId", "aspectId", "indicatorId", "url", "ownerId"]
+      "required": ["id", "title", "description", "priority", "category", "status", "createdBy", "creatorRole", "creatorEmail", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
-    "/students/{studentId}": {
-      "schema": "Student",
-      "description": "Koleksi data murid"
+    "/templates/{templateId}": {
+      "schema": "KartikaTemplate",
+      "description": "Store the PDF report template"
     },
-    "/assessments/{studentId}": {
-      "schema": "Assessment",
-      "description": "Koleksi data nilai per murid"
-    },
-    "/settings/{userId}": {
-      "schema": "Settings",
-      "description": "Konfigurasi profil sekolah per user"
-    },
-    "/photos/{photoId}": {
-      "schema": "Photos",
-      "description": "Koleksi foto bukti penilaian"
+    "/kanban_tasks/{taskId}": {
+      "schema": "KanbanTask",
+      "description": "Store school-wide collaborative Kanban tasks"
     }
   }
 }

@@ -1,4 +1,4 @@
-import { Aspect } from "./types";
+import { Aspect, Indicator } from "./types";
 
 export const ASPECTS: Aspect[] = [
   {
@@ -94,3 +94,18 @@ export const SCALE_COLORS: Record<string, string> = {
   BSH: "bg-emerald-500/80",
   BSB: "bg-blue-500/80",
 };
+
+export const CURRICULUM_INDICATORS: Indicator[] = [
+  { id: "curr_01", text: "Menunjukkan kemandirian dalam kegiatan rutin di sekolah" },
+  { id: "curr_02", text: "Mampu bekerja sama dalam kelompok kecil saat bermain" },
+  { id: "curr_03", text: "Menunjukkan rasa percaya diri saat tampil di depan kelas" },
+  { id: "curr_04", text: "Mengenal dan mematuhi aturan serta tata tertib sekolah" },
+  { id: "curr_05", text: "Mampu mengekspresikan emosi dengan cara yang tepat" },
+  { id: "curr_06", text: "Menunjukkan minat dalam kegiatan seni dan kreativitas" },
+  { id: "curr_07", text: "Merespons instruksi guru dengan cepat dan benar" },
+  { id: "curr_08", text: "Peduli terhadap kebersihan lingkungan sekolah" },
+  { id: "curr_09", text: "Berani mencoba hal-hal baru yang positif" },
+  { id: "curr_10", text: "Menunjukkan sikap santun kepada guru dan karyawan sekolah" },
+];
+
+export const AUDIT_PIN = "2026";

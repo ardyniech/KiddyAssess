@@ -1,9 +1,14 @@
 import React, { useState } from "react";
-import { AtomText, AtomBadge } from "../atoms/CommonAtoms";
-import { MoleculeStudentCard, MoleculeFormInput } from "../molecules/Molecules";
+import { AtomText } from "../atoms/CommonAtoms";
 import { Student } from "../../types";
-import { Plus, X, Search, Users, Edit2, Trash2 } from "lucide-react";
+import { Plus, X, Menu, Users, GraduationCap, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { StudentManagerNavigation } from "./student-manager/StudentManagerNavigation";
+import { StudentListSection } from "./student-manager/StudentListSection";
+import { StudentUpsertForm } from "./student-manager/StudentUpsertForm";
+import { DeleteConfirmationDialog } from "./student-manager/DeleteConfirmationDialog";
+import { cn } from "../../lib/utils";
+import { usePermissions } from "../../context/PermissionContext";
 
 interface OrganismStudentManagerProps {
   students: Student[];
@@ -14,260 +19,202 @@ interface OrganismStudentManagerProps {
   onSelectStudent: (student: Student) => void;
   activeStudentId?: string;
   onClose: () => void;
+  setView: (view: any) => void;
+  onOpenSettings: () => void;
+  currentView: any;
+  initialIsAdding?: boolean;
 }
 
 export function OrganismStudentManager({ 
   students, 
-  getStudentProgress,
+  getStudentProgress, 
   onAddStudent, 
   onUpdateStudent, 
   onDeleteStudent, 
   onSelectStudent, 
   activeStudentId, 
-  onClose 
+  onClose, 
+  setView, 
+  onOpenSettings, 
+  currentView, 
+  initialIsAdding = false 
 }: OrganismStudentManagerProps) {
-  const [isAdding, setIsAdding] = useState(false);
+  const { userRole } = usePermissions();
+  const isReadOnly = userRole === 'SUPER_USER'; // Only SUPER_USER (Yayasan) is read only for student records now. ADMIN can edit.
+
+  const [isAdding, setIsAdding] = useState(initialIsAdding);
+
+  React.useEffect(() => {
+    setIsAdding(initialIsAdding);
+  }, [initialIsAdding]);
+  const [activeTab, setActiveTab] = useState<'navigation' | 'students'>('navigation');
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [search, setSearch] = useState("");
-  const [formData, setFormData] = useState({ name: "", class: "", semester: "1", photoUrl: "" });
+  const [rombelFilter, setRombelFilter] = useState("ALL");
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
+  const [formData, setFormData] = useState<Omit<Student, "id" | "updatedAt">>({ 
+    name: "", kelompok: "A1", semester: "1", semesterType: "Ganjil", photoUrl: "", nisn: "", height: 0, weight: 0 
+  });
 
-  const filteredStudents = students.filter(s => 
-    s.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredStudents = students.filter(s => {
+    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase());
+    const matchesRombel = rombelFilter === "ALL" || s.kelompok === rombelFilter;
+    return matchesSearch && matchesRombel;
+  });
+
+  const availableRombels = Array.from(new Set(students.map(s => s.kelompok))).filter(Boolean);
 
   const startEdit = (student: Student, e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); 
     setEditingStudent(student);
     setFormData({ 
       name: student.name, 
-      class: student.class, 
-      semester: student.semester,
-      photoUrl: student.photoUrl || ""
+      kelompok: student.kelompok, 
+      semester: student.semester, 
+      semesterType: student.semesterType, 
+      photoUrl: student.photoUrl || "", 
+      nisn: student.nisn || "", 
+      height: student.height || 0, 
+      weight: student.weight || 0 
     });
     setIsAdding(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.name && formData.class) {
+    if (formData.name) {
       if (editingStudent) {
         onUpdateStudent({ ...editingStudent, ...formData });
       } else {
         onAddStudent(formData);
       }
-      setFormData({ name: "", class: "", semester: "1", photoUrl: "" });
-      setIsAdding(false);
-      setEditingStudent(null);
+      setIsAdding(false); 
+      setEditingStudent(null); 
+      setFormData({ name: "", kelompok: "A1", semester: "1", semesterType: "Ganjil", photoUrl: "", nisn: "", height: 0, weight: 0 });
     }
   };
 
   return (
-    <div className="flex flex-col h-full glass-card border-r w-full overflow-hidden">
-      <div className="p-4 md:p-6 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-black/5 dark:bg-slate-900/60 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="bg-cyan-400 w-2 h-2 rounded-full shadow-[0_0_10px_rgba(34,211,238,0.5)]" />
-          <AtomText variant="h3" className="font-display tracking-tight text-sm md:text-base text-slate-900 dark:text-white uppercase font-black">Student List</AtomText>
+    <div className="flex flex-col h-full bg-white border-r border-[var(--border-subtle)] w-full overflow-hidden shadow-2xl relative">
+      <header className="p-3.5 border-b border-black/5 flex justify-between items-center bg-slate-50 shrink-0">
+        <div className="flex items-center gap-2">
+            <div className="bg-indigo-600 w-2.5 h-2.5 rounded-full animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-black">Workspace Control</span>
         </div>
-        <button onClick={onClose} className="p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full transition-all group lg:hidden">
-          <X className="w-4 h-4 text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white" />
-        </button>
-      </div>
+        <button onClick={onClose} className="p-1.5 hover:bg-black/5 rounded-full transition-colors cursor-pointer"><X size={14} className="text-slate-500" /></button>
+      </header>
 
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <AnimatePresence mode="wait">
-          {!isAdding ? (
-            <motion.div 
-              key="list"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, height: 0 }}
-              className="flex-1 flex flex-col overflow-hidden p-2 md:p-3"
-            >
-              <div className="text-[10px] md:text-sm font-black text-slate-800 dark:text-white uppercase tracking-[0.2em] mb-2 px-1">Murid Aktif</div>
-              <div className="relative mb-3 shrink-0">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
-                <input 
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Cari Murid..."
-                  className="w-full bg-black/5 dark:bg-slate-950/40 border border-black/10 dark:border-cyan-500/20 rounded-lg pl-10 pr-3 py-2.5 text-xs md:text-sm font-bold text-main focus:outline-none focus:ring-1 focus:ring-cyan-500/50 transition-all placeholder:text-muted/60"
-                />
-              </div>
+      {/* Conditionally Render Add / Edit Form, or Navigation & Swap List tab */}
+      {isAdding ? (
+        <div className="flex-1 overflow-y-auto flex flex-col min-h-0 bg-slate-50/40">
+           <button 
+             onClick={() => { setIsAdding(false); setEditingStudent(null); }}
+             className="flex items-center gap-2 p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-black transition-colors text-left"
+           >
+             <ChevronLeft size={14} /> Back to Drawer
+           </button>
+           <StudentUpsertForm 
+             editingStudent={editingStudent} 
+             formData={formData} 
+             setFormData={setFormData} 
+             onSubmit={handleSubmit} 
+             onCancel={() => { setIsAdding(false); setEditingStudent(null); }} 
+           />
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+          {/* Segment Toggle Buttons */}
+          <div className="p-2.5 bg-slate-50 border-b border-slate-100 flex gap-1 shrink-0">
+             <button 
+               onClick={() => setActiveTab('navigation')}
+               className={cn(
+                 "flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                 activeTab === 'navigation' ? "bg-black text-white shadow" : "bg-white hover:bg-slate-100 border border-slate-200 text-slate-500"
+               )}
+             >
+               <Menu size={12} />
+               Menu Modules
+             </button>
+             <button 
+               onClick={() => setActiveTab('students')}
+               className={cn(
+                 "flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                 activeTab === 'students' ? "bg-black text-white shadow" : "bg-white hover:bg-slate-100 border border-slate-200 text-slate-500"
+               )}
+             >
+               <Users size={12} />
+               Student List
+             </button>
+          </div>
 
-              <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-1.5">
-                <AnimatePresence mode="popLayout">
-                  {filteredStudents.map((student) => (
-                    <motion.div
-                      key={student.id}
-                      layout
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                    >
-                      <div className="relative group/card">
-                        <MoleculeStudentCard
-                          name={student.name}
-                          studentClass={student.class}
-                          semester={student.semester}
-                          photoUrl={student.photoUrl}
-                          progress={getStudentProgress(student.id)} 
-                          active={activeStudentId === student.id}
-                          onClick={() => onSelectStudent(student)}
-                        />
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover/card:opacity-100 transition-opacity">
-                          <button 
-                            onClick={(e) => startEdit(student, e)}
-                            className="p-2 md:p-1.5 bg-white/40 dark:bg-black/40 hover:bg-sky-500 hover:text-white rounded-lg transition-all shadow-sm border border-black/5 dark:border-white/5"
-                            title="Edit Data Murid"
-                          >
-                            <Edit2 size={12} className="md:w-3 md:h-3" />
-                          </button>
-                          <button 
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              setStudentToDelete(student);
+          <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+             {activeTab === 'navigation' ? (
+                <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
+                   <StudentManagerNavigation currentView={currentView} setView={setView} onClose={onClose} onOpenSettings={onOpenSettings} />
+                   {/* DNA Layout Accent */}
+                    <div className="p-8 flex flex-col items-center justify-center opacity-5 select-none pointer-events-none mt-auto">
+                      <div className="text-[32px] font-black italic tracking-tighter leading-none mb-1">KIDDY</div>
+                      <div className="w-16 h-[2px] bg-black mb-2" />
+                      <div className="text-[8px] font-bold tracking-[0.5em] uppercase">ASSESS SYSTEM</div>
+                    </div>
+                </div>
+             ) : (
+                <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+                   <StudentListSection 
+                      search={search}
+                      setSearch={setSearch}
+                      rombelFilter={rombelFilter}
+                      setRombelFilter={setRombelFilter}
+                      availableRombels={availableRombels}
+                      filteredStudents={filteredStudents}
+                      getStudentProgress={getStudentProgress}
+                      activeStudentId={activeStudentId}
+                      onSelectStudent={(s) => {
+                        onSelectStudent(s);
+                        onClose();
+                      }}
+                      onEditStudent={startEdit}
+                      onDeleteRequest={(s) => setStudentToDelete(s)}
+                   />
+                   
+                   {!isReadOnly && (
+                      <div className="p-3 bg-slate-50 border-t border-slate-100 shrink-0">
+                         <button 
+                            onClick={() => {
+                              setEditingStudent(null);
+                              setFormData({ name: "", kelompok: "A1", semester: "1", semesterType: "Ganjil", photoUrl: "", nisn: "", height: 0, weight: 0 });
+                              setIsAdding(true);
                             }}
-                            className="p-2 md:p-1.5 bg-white/40 dark:bg-black/40 hover:bg-red-500 hover:text-white rounded-lg transition-all shadow-sm border border-black/5 dark:border-white/5"
-                            title="Hapus Murid"
-                          >
-                            <Trash2 size={12} className="md:w-3 md:h-3" />
-                          </button>
-                        </div>
+                            className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all shadow-md shadow-indigo-100 cursor-pointer"
+                         >
+                            <Plus size={14} />
+                            Add New Student Record
+                         </button>
                       </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-                {filteredStudents.length === 0 && (
-                  <div className="text-center py-8 opacity-20">
-                    <Users className="mx-auto w-6 h-6 mb-2" />
-                    <AtomText variant="caption" className="text-[8px]">Belum ada murid</AtomText>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div 
-              key="form"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              className="flex-1 p-4 md:p-6 flex flex-col overflow-y-auto custom-scrollbar"
-            >
-              <div className="text-[9px] font-bold text-cyan-500 uppercase tracking-[0.2em] mb-4 text-center font-black">
-                {editingStudent ? "Ubah Data Murid" : "Tambah Murid Baru"}
-              </div>
-              <form onSubmit={handleSubmit} className="space-y-3 glass-panel p-4 md:p-5 rounded-2xl dark:neon-cyan bg-white/50 dark:bg-slate-900/60">
-                <MoleculeFormInput 
-                  label="Nama Murid" 
-                  value={formData.name} 
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Contoh: Rayyan Al-Fatih"
-                />
-                <MoleculeFormInput 
-                  label="URL Foto Murid (Opsional)" 
-                  value={formData.photoUrl || ""} 
-                  onChange={e => setFormData({ ...formData, photoUrl: e.target.value })}
-                  placeholder="https://..."
-                />
-                <div className="grid grid-cols-2 gap-3">
-                  <MoleculeFormInput 
-                    label="Kelas" 
-                    value={formData.class} 
-                    onChange={e => setFormData({ ...formData, class: e.target.value })}
-                    placeholder="B1"
-                  />
-                  <div className="flex flex-col gap-1 text-left">
-                    <label className="text-[9px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest ml-1">Semester</label>
-                    <select 
-                      value={formData.semester} 
-                      onChange={e => setFormData({ ...formData, semester: e.target.value })}
-                      className="bg-black/5 dark:bg-slate-950/40 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2.5 text-[11px] text-main focus:outline-none appearance-none"
-                    >
-                      <option value="1" className="bg-slate-100 dark:bg-slate-800">1</option>
-                      <option value="2" className="bg-slate-100 dark:bg-slate-800">2</option>
-                    </select>
-                  </div>
+                   )}
                 </div>
-                <div className="flex gap-2 pt-3">
-                  <button 
-                    type="button"
-                    onClick={() => { setIsAdding(false); setEditingStudent(null); }}
-                    className="flex-1 py-2 text-[10px] font-bold text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors uppercase"
-                  >
-                    Batal
-                  </button>
-                  <button 
-                    type="submit"
-                    className="flex-1 py-2 bg-cyan-500 hover:bg-cyan-400 rounded-lg text-[10px] font-black text-white shadow-lg shadow-cyan-500/20 transition-all uppercase tracking-widest"
-                  >
-                    {editingStudent ? "Ubah" : "Simpan"}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+             )}
+          </div>
+        </div>
+      )}
+      
+      <footer className="p-3.5 bg-slate-50 border-t border-black/5 shrink-0">
+        <div className="text-[7px] font-black uppercase tracking-[0.2em] text-slate-400 text-center">
+          Professional Report Management System
+        </div>
+      </footer>
 
-      <div className="p-4 md:p-6 bg-black/5 dark:bg-white/5 border-t border-black/5 dark:border-white/5 shrink-0">
-        {!isAdding && (
-          <button 
-            onClick={() => setIsAdding(true)}
-            className="w-full py-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-dashed border-black/20 dark:border-white/20 text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 group transition-all"
-          >
-            <Plus className="inline w-3 h-3 mr-2 group-hover:rotate-90 transition-transform" />
-            Add New Student
-          </button>
-        )}
-      </div>
-
-      {/* Delete Confirmation Dialog */}
+      {/* Student Delete Confirmation Overlays */}
       <AnimatePresence>
         {studentToDelete && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setStudentToDelete(null)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-sm glass-card p-6 md:p-8 rounded-[2.5rem] dark:neon-cyan bg-white dark:bg-slate-900 shadow-2xl border-black/5 flex flex-col items-center text-center"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 mb-6">
-                <Trash2 size={24} />
-              </div>
-              
-              <AtomText variant="h3" className="mb-2 text-slate-900 dark:text-white font-black tracking-tight">Hapus Data Murid?</AtomText>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-                Apakah Anda yakin ingin menghapus data <span className="font-black text-slate-900 dark:text-white">"{studentToDelete.name}"</span>? 
-                Seluruh data penilaian murid ini akan ikut terhapus secara permanen.
-              </p>
-
-              <div className="flex gap-3 w-full">
-                <button 
-                  onClick={() => setStudentToDelete(null)}
-                  className="flex-1 py-3 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 transition-all"
-                >
-                  Batal
-                </button>
-                <button 
-                  onClick={() => {
-                    onDeleteStudent(studentToDelete.id);
-                    setStudentToDelete(null);
-                  }}
-                  className="flex-1 py-3 bg-red-500 hover:bg-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-red-500/20 transition-all"
-                >
-                  Hapus
-                </button>
-              </div>
-            </motion.div>
-          </div>
+          <DeleteConfirmationDialog 
+            student={studentToDelete}
+            onConfirm={() => {
+              onDeleteStudent(studentToDelete.id);
+              setStudentToDelete(null);
+            }}
+            onCancel={() => setStudentToDelete(null)}
+          />
         )}
       </AnimatePresence>
     </div>

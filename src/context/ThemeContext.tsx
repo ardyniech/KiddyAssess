@@ -1,18 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getSchoolProfile } from '../services/settingsService';
 
-interface AppTheme {
-  appearance: 'light' | 'dark' | 'system';
+export interface AppTheme {
+  appearance: 'light';
   isMonochrome: boolean;
   primaryColor: string;
   light: {
-    textMain: string;
-    textMuted: string;
-    background: string;
-    cardBg: string;
-    aspectTitle: string;
-    indicatorText: string;
-  };
-  dark: {
     textMain: string;
     textMuted: string;
     background: string;
@@ -44,45 +37,37 @@ interface AppTheme {
 }
 
 const defaultTheme: AppTheme = {
-  appearance: 'system',
+  appearance: 'light',
   isMonochrome: false,
-  primaryColor: '#38bdf8',
+  primaryColor: '#000000',
   light: {
-    textMain: '#0f172a',
-    textMuted: '#475569',
-    background: '#f8fafc',
-    cardBg: 'rgba(255, 255, 255, 0.75)',
-    aspectTitle: '#0f172a',
-    indicatorText: '#334155',
-  },
-  dark: {
-    textMain: '#ffffff',
-    textMuted: '#cbd5e1',
-    background: '#020617',
-    cardBg: 'rgba(15, 23, 42, 0.6)',
-    aspectTitle: '#ffffff',
-    indicatorText: '#e2e8f0',
+    textMain: '#000000',
+    textMuted: '#666666',
+    background: '#ffffff',
+    cardBg: '#ffffff',
+    aspectTitle: '#000000',
+    indicatorText: '#333333',
   },
   gradients: {
-    from: '#f8fafc',
-    via: '#f1f5f9',
-    to: '#f8fafc',
+    from: '#ffffff',
+    via: '#fcfcfc',
+    to: '#ffffff',
   },
   layout: {
     paddingScale: 1,
     marginScale: 1,
-    cardOpacity: 0.7,
-    cardBlur: 24,
+    cardOpacity: 1,
+    cardBlur: 0,
     cardFontSize: 14,
-    cardFontColor: '#0f172a',
+    cardFontColor: '#000000',
   },
   content: {
     bannerTitle: 'Assessment Digital Praktis',
     bannerSubtitle: 'Sistem Penilaian Anak Usia Dini Berbasis Naratif untuk Guru yang Mengutamakan Efisiensi dan Ketelitian.',
   },
-  borderRadius: '1.5rem',
+  borderRadius: '16px',
   fontFamily: '"Plus Jakarta Sans", sans-serif',
-  glassOpacity: 0.7,
+  glassOpacity: 1,
   systemFontSize: 16,
 };
 
@@ -104,29 +89,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return {
         ...defaultTheme,
         ...parsed,
-        light: parsed.light ? { ...defaultTheme.light, ...parsed.light } : defaultTheme.light,
-        dark: parsed.dark ? { ...defaultTheme.dark, ...parsed.dark } : defaultTheme.dark
+        appearance: 'light'
       };
     } catch (e) {
       return defaultTheme;
     }
   });
 
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
+  const [resolvedTheme] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
     const root = document.documentElement;
     
-    // Resolve Appearance
-    let targetTheme: 'light' | 'dark' = 'light';
-    if (theme.appearance === 'system') {
-      targetTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    } else {
-      targetTheme = theme.appearance;
-    }
-    
-    setResolvedTheme(targetTheme);
-    root.classList.toggle('dark', targetTheme === 'dark');
+    // Always Light
+    root.classList.remove('dark');
     root.classList.toggle('monochrome', theme.isMonochrome);
 
     const effectiveTheme = theme.isMonochrome ? {
@@ -139,47 +115,54 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         cardBg: '#f0f0f0',
         aspectTitle: '#000000',
         indicatorText: '#333333',
-      },
-      dark: {
-        textMain: '#ffffff',
-        textMuted: '#aaaaaa',
-        background: '#000000',
-        cardBg: '#111111',
-        aspectTitle: '#ffffff',
-        indicatorText: '#cccccc',
       }
     } : theme;
 
-    // System theme listener
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = () => {
-      if (theme.appearance === 'system') {
-        const newTheme = mediaQuery.matches ? 'dark' : 'light';
-        setResolvedTheme(newTheme);
-        root.classList.toggle('dark', newTheme === 'dark');
-      }
+    // FETCH ATOMIC SETTINGS FROM DB
+    const syncWithProfile = async () => {
+        const profile = await getSchoolProfile();
+        
+        const accent = profile?.accentColor || effectiveTheme.primaryColor;
+        root.style.setProperty('--color-primary', accent);
+        
+        const cardBg = profile?.cardBackgroundColor || '#ffffff';
+        root.style.setProperty('--card-bg', cardBg);
+        
+        const radiusMap: Record<string, string> = {
+            none: '0px',
+            small: '8px',
+            medium: '16px',
+            large: '24px',
+            full: '9999px'
+        };
+        const borderRadius = profile?.borderRadius 
+            ? (radiusMap[profile.borderRadius] || profile.borderRadius) 
+            : effectiveTheme.borderRadius;
+        root.style.setProperty('--app-radius', borderRadius);
+
+        if (profile?.cardGlassmorphism === false) {
+            root.style.setProperty('--card-blur', '0px');
+            root.style.setProperty('--card-opacity', '1');
+        } else {
+            root.style.setProperty('--card-blur', `${theme.layout.cardBlur}px`);
+            root.style.setProperty('--card-opacity', String(theme.layout.cardOpacity));
+        }
+
+        // Font Family
+        root.style.setProperty('--font-family', theme.fontFamily);
+        root.style.setProperty('--base-font-size', `${theme.systemFontSize}px`);
     };
+
+    syncWithProfile();
+    window.addEventListener('app-settings-updated', syncWithProfile);
     
-    mediaQuery.addEventListener('change', handleChange);
-    
-    // Primary
-    root.style.setProperty('--color-primary', effectiveTheme.primaryColor);
-    
-    // Light Group
+    // Light Group mapping (Sync)
     root.style.setProperty('--light-text-main', effectiveTheme.light.textMain);
     root.style.setProperty('--light-text-muted', effectiveTheme.light.textMuted);
     root.style.setProperty('--light-bg', effectiveTheme.light.background);
     root.style.setProperty('--light-card-bg', effectiveTheme.light.cardBg);
     root.style.setProperty('--light-aspect-title', effectiveTheme.light.aspectTitle);
     root.style.setProperty('--light-indicator-text', effectiveTheme.light.indicatorText);
-
-    // Dark Group
-    root.style.setProperty('--dark-text-main', effectiveTheme.dark.textMain);
-    root.style.setProperty('--dark-text-muted', effectiveTheme.dark.textMuted);
-    root.style.setProperty('--dark-bg', effectiveTheme.dark.background);
-    root.style.setProperty('--dark-card-bg', effectiveTheme.dark.cardBg);
-    root.style.setProperty('--dark-aspect-title', effectiveTheme.dark.aspectTitle);
-    root.style.setProperty('--dark-indicator-text', effectiveTheme.dark.indicatorText);
 
     // Global
     root.style.setProperty('--app-radius', effectiveTheme.borderRadius);
@@ -200,9 +183,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     root.style.setProperty('--card-font-size', `${theme.layout.cardFontSize}px`);
     root.style.setProperty('--card-font-color', theme.layout.cardFontColor);
 
-    localStorage.setItem('kiddyassess-theme', JSON.stringify(theme));
+    localStorage.setItem('kiddyassess-theme', JSON.stringify({ ...theme, appearance: 'light' }));
     
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    return () => {};
   }, [theme]);
 
   const updateTheme = (updates: Partial<AppTheme>) => {

@@ -1,5 +1,6 @@
 import { db } from '../lib/db';
-import { SchoolProfile } from '../types';
+import { SchoolProfile, UserSettings } from '../types';
+import { ReportType } from '../types/report_types';
 
 const DEFAULT_SCHOOL_PROFILE: SchoolProfile = {
   name: "TK TUNAS HARAPAN BANGSA",
@@ -7,7 +8,40 @@ const DEFAULT_SCHOOL_PROFILE: SchoolProfile = {
   phone: "021-555-1234",
   email: "info@tunasharapan.sch.id",
   principalName: "Hj. Siti Aminah, S.Pd",
-  teacherName: "Ardy Syafii, S.Pd"
+  teacherName: "Ardy Syafii, S.Pd",
+  aiTone: "Formal & Profesional",
+  aiSensitivity: "Standard Balanced",
+  useAINarrative: true,
+  autoCorrect: true,
+  showPhotos: true,
+  showSignature: true,
+  layoutMode: "one-page-per-aspect",
+  accentColor: "#0ea5e9", // Sky 500
+  borderRadius: "large",
+  fontSizeBase: "standard",
+  cardGlassmorphism: true,
+  cardBackgroundColor: "#ffffff",
+  scaleLabels: {
+    BB: "Belum Berkembang",
+    MB: "Mulai Berkembang",
+    BSH: "Berkembang Sesuai Harapan",
+    BSB: "Berkembang Sangat Baik"
+  },
+  scaleColors: {
+    BB: "bg-red-500",
+    MB: "bg-amber-500",
+    BSH: "bg-emerald-500",
+    BSB: "bg-blue-500"
+  },
+  showQrCode: true
+};
+
+const DEFAULT_USER_SETTINGS: UserSettings = {
+  language: 'id',
+  fontSize: 'medium',
+  highContrast: false,
+  reducedMotion: false,
+  defaultReportType: ReportType.ASPEK_PERKEMBANGAN
 };
 
 export async function saveSchoolProfile(profile: SchoolProfile) {
@@ -19,11 +53,11 @@ export async function getSchoolProfile(): Promise<SchoolProfile> {
   return record?.value || DEFAULT_SCHOOL_PROFILE;
 }
 
-export async function saveThemeSettings(theme: any) {
-  return await db.settings.put({ key: 'theme_settings', value: theme });
+export async function saveUserSettings(settings: UserSettings) {
+  return await db.settings.put({ key: 'user_settings', value: settings });
 }
 
-export async function getThemeSettings(): Promise<any | null> {
-  const record = await db.settings.get('theme_settings');
-  return record?.value || null;
+export async function getUserSettings(): Promise<UserSettings> {
+  const record = await db.settings.get('user_settings');
+  return record?.value || DEFAULT_USER_SETTINGS;
 }

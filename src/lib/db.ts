@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import { Student, StudentAssessment } from '../types';
+import { Student, StudentAssessment, KanbanTask } from '../types';
 
 export interface AssessmentPhoto {
   id?: number;
@@ -16,11 +16,34 @@ export interface AppSettings {
   value: any;
 }
 
+export interface NarrativeEntry {
+  id?: string; // combination of studentId + aspectId
+  studentId: string;
+  aspectId: string;
+  narrative: string;
+  advice: string;
+  updatedAt: number;
+}
+
+export interface Event {
+  id: string;
+  title: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  category: 'Academic' | 'Holiday' | 'Event' | 'Holiday Staff';
+  description: string;
+}
+
 export class KiddyDatabase extends Dexie {
   students!: Table<Student>;
   assessments!: Table<{ id: string; data: StudentAssessment }>;
   photos!: Table<AssessmentPhoto>;
   settings!: Table<AppSettings>;
+  narratives!: Table<NarrativeEntry>;
+  events!: Table<Event>; // Add this line
+  tasks!: Table<KanbanTask>;
 
   constructor() {
     super('KiddyAssessDB');
@@ -28,7 +51,25 @@ export class KiddyDatabase extends Dexie {
       students: 'id, name',
       assessments: 'id',
       photos: '++id, studentId, [studentId+aspectId+indicatorId]',
-      settings: 'key'
+      settings: 'key',
+      narratives: '++id, studentId, [studentId+aspectId]'
+    });
+    this.version(2).stores({ // Bump to version 2
+      students: 'id, name',
+      assessments: 'id',
+      photos: '++id, studentId, [studentId+aspectId+indicatorId]',
+      settings: 'key',
+      narratives: '++id, studentId, [studentId+aspectId]',
+      events: 'id, date' // Add events store
+    });
+    this.version(3).stores({ // Bump to version 3
+      students: 'id, name',
+      assessments: 'id',
+      photos: '++id, studentId, [studentId+aspectId+indicatorId]',
+      settings: 'key',
+      narratives: '++id, studentId, [studentId+aspectId]',
+      events: 'id, date',
+      tasks: 'id, status'
     });
   }
 }
@@ -43,6 +84,24 @@ export async function saveAssessments(data: StudentAssessment) {
 export async function loadAssessments(): Promise<StudentAssessment> {
   const record = await db.assessments.get('current');
   return record?.data || {};
+}
+
+// Events helpers
+export async function saveEvents(events: Event[]) {
+  return await db.events.bulkPut(events);
+}
+
+export async function loadEvents(): Promise<Event[]> {
+  return await db.events.toArray();
+}
+
+// Task helpers
+export async function saveTasksLocal(tasks: KanbanTask[]) {
+  return await db.tasks.bulkPut(tasks);
+}
+
+export async function loadTasksLocal(): Promise<KanbanTask[]> {
+  return await db.tasks.toArray();
 }
 
 export interface SavedNarrative {
@@ -101,4 +160,32 @@ export async function getPhotosForStudent(studentId: string) {
 
 export async function deletePhoto(photoId: number) {
   return await db.photos.delete(photoId);
+}
+
+// Kartika 5NK Helpers
+export async function saveKartikaScores(studentId: string, scores: Record<string, string>) {
+  return await db.assessments.put({ id: `kartika_scores_${studentId}`, data: scores as any });
+}
+
+export async function loadKartikaScores(studentId: string): Promise<Record<string, string>> {
+  const record = await db.assessments.get(`kartika_scores_${studentId}`);
+  return (record?.data as any) || {};
+}
+
+export async function saveKartikaComments(studentId: string, comments: any) {
+  return await db.assessments.put({ id: `kartika_comments_${studentId}`, data: comments });
+}
+
+export async function loadKartikaComments(studentId: string): Promise<any> {
+  const record = await db.assessments.get(`kartika_comments_${studentId}`);
+  return record?.data || null;
+}
+
+export async function saveKartikaTemplate(template: Uint8Array) {
+  return await db.settings.put({ key: 'kartika_template', value: template });
+}
+
+export async function loadKartikaTemplate(): Promise<Uint8Array | null> {
+  const record = await db.settings.get('kartika_template');
+  return record ? record.value : null;
 }

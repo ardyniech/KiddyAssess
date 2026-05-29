@@ -14,9 +14,9 @@ export default defineConfig(({mode}) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
         manifest: {
-          name: 'KiddyAssess v2.0',
-          short_name: 'KiddyAssess',
-          description: 'Digital Teacher Assistant for Early Childhood Assessment',
+          name: 'KiddyApps v3.0',
+          short_name: 'KiddyApps',
+          description: 'Platform Manajemen Sekolah Terpadu',
           theme_color: '#0ea5e9',
           background_color: '#1e1b4b',
           display: 'standalone',

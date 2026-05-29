@@ -12,7 +12,7 @@ import {
   DocumentData
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
-import { Student, StudentAssessment, SchoolProfile, AssessmentScale } from '../types';
+import { Student, StudentAssessment, SchoolProfile, AssessmentScale, KanbanTask, UserRole } from '../types';
 
 export enum OperationType {
   CREATE = 'create',
@@ -158,6 +158,107 @@ export const syncService = {
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+
+  // --- Kanban Tasks ---
+  async getKanbanTasks(): Promise<KanbanTask[]> {
+    const path = 'kanban_tasks';
+    try {
+      const q = collection(db, path);
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(d => ({ ...d.data() } as KanbanTask));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, path);
+      return [];
+    }
+  },
+
+  async saveKanbanTask(task: KanbanTask) {
+    if (!auth.currentUser) return;
+    const path = `kanban_tasks/${task.id}`;
+    try {
+      await setDoc(doc(db, 'kanban_tasks', task.id), {
+        ...task,
+        updatedAt: Date.now()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+
+  async deleteKanbanTask(taskId: string) {
+    if (!auth.currentUser) return;
+    const path = `kanban_tasks/${taskId}`;
+    try {
+      await deleteDoc(doc(db, 'kanban_tasks', taskId));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
+    }
+  },
+
+  // --- User Discovery ---
+  async recordUserLogin(email: string, displayName: string | null) {
+    const path = `users/${email.replace(/\./g, '_')}`;
+    try {
+      await setDoc(doc(db, 'users', email.replace(/\./g, '_')), {
+        email,
+        displayName,
+        lastLogin: Date.now()
+      }, { merge: true });
+    } catch (error) {
+      console.error("Failed to record login:", error);
+    }
+  },
+
+  async getAllUsers(): Promise<any[]> {
+    try {
+      const snapshot = await getDocs(collection(db, 'users'));
+      return snapshot.docs
+        .map(doc => doc.data())
+        .sort((a, b) => (b.lastLogin || 0) - (a.lastLogin || 0));
+    } catch (error) {
+      console.error("Failed to get all users:", error);
+      return [];
+    }
+  },
+  async getAccountRoles(): Promise<Record<string, UserRole>> {
+    const path = 'account_roles';
+    try {
+      const snapshot = await getDocs(collection(db, path));
+      const roles: Record<string, UserRole> = {};
+      snapshot.docs.forEach(doc => {
+        roles[doc.id] = doc.data().role as UserRole;
+      });
+      return roles;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, path);
+      return {};
+    }
+  },
+
+  async saveAccountRole(email: string, role: UserRole) {
+    if (!auth.currentUser) return;
+    const path = `account_roles/${email.replace(/\./g, '_')}`; // Use encoded email as doc ID
+    try {
+      await setDoc(doc(db, 'account_roles', email.replace(/\./g, '_')), {
+        email,
+        role,
+        updatedBy: auth.currentUser.email,
+        updatedAt: Date.now()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+
+  async deleteAccountRole(email: string) {
+    if (!auth.currentUser) return;
+    const path = `account_roles/${email.replace(/\./g, '_')}`;
+    try {
+      await deleteDoc(doc(db, 'account_roles', email.replace(/\./g, '_')));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
     }
   }
 };

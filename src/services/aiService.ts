@@ -12,13 +12,14 @@ export const generateStudentNarrative = async (
   scores: Record<string, string>,
   tone?: string,
   customNotes?: string,
-  lengthTarget?: string
+  lengthTarget?: string,
+  autoCorrect?: boolean
 ) => {
   try {
     const response = await fetch('/api/generate-narrative', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ studentName, aspectName, indicators, scores, tone, customNotes, lengthTarget })
+      body: JSON.stringify({ studentName, aspectName, indicators, scores, tone, customNotes, lengthTarget, autoCorrect })
     });
     
     if (!response.ok) {

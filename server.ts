@@ -24,7 +24,7 @@ async function startServer() {
   // API Route: Narasi Generator using Gemini
   app.post("/api/generate-narrative", async (req, res) => {
     try {
-      const { studentName, aspectName, indicators, scores, tone, customNotes, lengthTarget } = req.body;
+      const { studentName, aspectName, indicators, scores, tone, customNotes, lengthTarget, autoCorrect } = req.body;
 
       if (!process.env.GEMINI_API_KEY) {
         return res.status(500).json({ error: "Gemini API Key is not configured." });
@@ -41,6 +41,10 @@ async function startServer() {
       const lengthGuideline = lengthTarget === "short"
         ? "MAX 250 karakter (sangat ringkas, padat langsung ke poin capaian utama)."
         : "MAX 450 karakter (panjang standar laporan perkembangan, terurai runut).";
+
+      const autoCorrectGuideline = autoCorrect 
+        ? "- Lakukan KOREKSI OTOMATIS: Poles bahasa menjadi indah, pastikan Ejaan Yang Disempurnakan (EYD) tepat, perbaiki tanda baca, dan hilangkan saltik/typo." 
+        : "";
 
       // Generate a detailed prompt for the report
       const prompt = `
@@ -61,6 +65,7 @@ async function startServer() {
         - ${toneGuideline}
         - Hindari pengulangan kata yang kaku atau berputar-putar.
         - Fokus pada perkembangan riil yang terukur dari data indikator di atas.
+        ${autoCorrectGuideline}
         
         Tugas:
         1. "narrative": Narasi capaian penilaian (${lengthGuideline}).
