@@ -47,8 +47,11 @@ Guru TK/PAUD di lapangan, Kepala Sekolah, dan Administrator (Admin/TU) yang seri
 - **Smart Quick Bar**: Header minimalis yang memuat info profil sekolah, status cloud backup mini, dan pintasan pengaturan. 
 - **Tabbed Classroom**: Memudahkan guru berpindah dari daftar nama anak, input penilaian, dan ekspor lapor dalam satu ketukan tanpa harus membuka sidebar menu yang membingungkan.
 
-## 5. Spesifikasi Teknis Sederhana
+## 5. Spesifikasi Teknis & Aturan Kode
 - **Frontend**: React 18 + Tailwind CSS 4 + Framer Motion.
 - **Database Lokal**: Dexie.js (Offline-First).
 - **Sinkronisasi Cloud**: Firebase Auth & Firestore.
 - **Mesin AI**: Server-side proxy ke Gemini API dengan template prompt otomatis berbahasa Indonesia.
+- **Micro-Component Rule**: Setiap file (komponen UI, hook, context) DILARANG keras memiliki lebih dari 125 baris kode (max 125 rows). Semua fungsi kompleks dipecah menjadi file kecil.
+- **Plug-and-Play Architecture**: Aplikasi dibangun dengan basis modular. Komponen dan fitur dapat dengan mudah dipasang, dicopot, dan digunakan ulang (reusable) layaknya blok mainan.
+- **Platform Hardening**: Fokus pada keandalan sistem. Penanganan error yang baik, perlindungan rute aplikasi, validasi ketat dan memastikan sistem bebas kerentanan umum. Fokus pada meminimalkan efek berantai ketika modul gagal (Smart System).
