@@ -80,6 +80,20 @@ export function useAppData(user: User | null) {
                 finalS = cloud; 
                 finalA = cloudAssess?.assessments || {}; 
                 finalN = cloudAssess?.narratives || {};
+                
+                // Safe load and seeding of Kartika assessments from Cloud to Dexie DB
+                if (cloudAssess?.kartikaScores) {
+                  const ksKeys = Object.keys(cloudAssess.kartikaScores);
+                  for (const sid of ksKeys) {
+                    await db.assessments.put({ id: `kartika_scores_${sid}`, data: cloudAssess.kartikaScores[sid] });
+                  }
+                }
+                if (cloudAssess?.kartikaComments) {
+                  const kcKeys = Object.keys(cloudAssess.kartikaComments);
+                  for (const sid of kcKeys) {
+                    await db.assessments.put({ id: `kartika_comments_${sid}`, data: cloudAssess.kartikaComments[sid] });
+                  }
+                }
             }
         }
         
@@ -302,7 +316,7 @@ export function useAppData(user: User | null) {
           const s = students[i];
           setCurrentSyncItem(`Mengunggah Peserta: ${s.name}`);
           await syncService.saveStudent(s);
-          await new Promise(r => setTimeout(r, 120));
+          await new Promise(r => setTimeout(r, 30));
           count++;
           setSyncProgress(Math.round((count / totalSteps) * 100));
         }
@@ -314,8 +328,13 @@ export function useAppData(user: User | null) {
           const sid = assessmentKeys[i];
           const sName = students.find(s => s.id === sid)?.name || "Materi";
           setCurrentSyncItem(`Mengunggah Raport: ${sName}`);
-          await syncService.saveAssessment(sid, assessments[sid], narratives[sid] || null);
-          await new Promise(r => setTimeout(r, 120));
+          
+          // Check for and retrieve any local Kartika scores/comments
+          const kScores = await db.assessments.get(`kartika_scores_${sid}`).then(r => r?.data || null);
+          const kComments = await db.assessments.get(`kartika_comments_${sid}`).then(r => r?.data || null);
+          
+          await syncService.saveAssessment(sid, assessments[sid], narratives[sid] || null, kScores, kComments);
+          await new Promise(r => setTimeout(r, 30));
           count++;
           setSyncProgress(Math.round((count / totalSteps) * 100));
         }

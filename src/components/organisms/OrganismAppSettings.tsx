@@ -11,6 +11,7 @@ import { getReportSettings, saveReportSettings } from '../../services/reportSett
 import { SchoolProfile, Aspect, ReportSettings } from '../../types';
 import { db } from '../../lib/db';
 import { cn } from '../../lib/utils';
+import { CustomConfirmModal } from '../molecules/CustomDialog';
 
 // Import New Tab Components
 import { SettingsVisualTab } from './settings/SettingsVisualTab';
@@ -30,6 +31,7 @@ export const OrganismAppSettings: React.FC<{ onClose?: () => void }> = ({ onClos
   const [reportSettings, setReportSettings] = useState<ReportSettings | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [dbStats, setDbStats] = useState({ students: 0, assessments: 0, photos: 0 });
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   useEffect(() => {
     getSchoolProfile().then(setSchoolProfile);
@@ -79,12 +81,14 @@ export const OrganismAppSettings: React.FC<{ onClose?: () => void }> = ({ onClos
   };
 
   const clearData = async () => {
-    if (confirm("KONFIRMASI KRITIKAL: Hapus semua data murid dan penilaian? Tindakan ini tidak bisa dibatalkan.")) {
-        await db.students.clear();
-        await db.assessments.clear();
-        await db.photos.clear();
-        window.location.reload();
-    }
+    setShowClearConfirm(true);
+  };
+
+  const executeClearData = async () => {
+    await db.students.clear();
+    await db.assessments.clear();
+    await db.photos.clear();
+    window.location.reload();
   };
 
   return (
@@ -135,7 +139,7 @@ export const OrganismAppSettings: React.FC<{ onClose?: () => void }> = ({ onClos
                 </div>
             </div>
 
-            <footer className="px-6 py-4 border-t border-slate-200 bg-white flex items-center justify-between shrink-0">
+             <footer className="px-6 py-4 border-t border-slate-200 bg-white flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /><span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Pengaturan Terkonfigurasi</span></div>
                 <div className="flex gap-3">
                     {onClose && <button onClick={onClose} className="px-6 py-3 rounded-xl text-[10px] font-black tracking-widest uppercase text-slate-400 hover:text-slate-900 transition-all">Batal</button>}
@@ -146,6 +150,17 @@ export const OrganismAppSettings: React.FC<{ onClose?: () => void }> = ({ onClos
                 </div>
             </footer>
         </main>
+
+        <CustomConfirmModal 
+          isOpen={showClearConfirm}
+          title="PURGE DATA KRITIKAL"
+          message="Apakah Anda yakin ingin menghapus seluruh data siswa, nilai rapor, penugasan, dan foto portofolio perkembangan dari perangkat ini? Tindakan pembersihan ini berskala permanen dan tidak dapat dibatalkan!"
+          confirmText="Hapus Seluruh Data"
+          cancelText="Batal"
+          variant="danger"
+          onConfirm={executeClearData}
+          onCancel={() => setShowClearConfirm(false)}
+        />
     </div>
   );
 };

@@ -16,6 +16,9 @@ export function useAssessmentHub(
     const [editingAspectId, setEditingAspectId] = useState<string | null>(null);
     const [editAspectName, setEditAspectName] = useState("");
 
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [showAddPrompt, setShowAddPrompt] = useState(false);
+
     const currentIdx = students ? students.findIndex(s => s.id === student?.id) : -1;
 
     useEffect(() => {
@@ -31,17 +34,17 @@ export function useAssessmentHub(
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [currentIdx, students, onSelectStudent]);
 
-    const addAspect = async () => {
-        const name = prompt("Enter aspect name:");
-        if (!name) return;
-        await updateAspects([...aspects, { id: `asp_${Date.now()}`, name, indicators: [] }]);
+    const executeAddAspect = async (name: string) => {
+        if (!name.trim()) return;
+        await updateAspects([...aspects, { id: `asp_${Date.now()}`, name: name.trim(), indicators: [] }]);
+        setShowAddPrompt(false);
     };
 
-    const deleteAspect = async (id: string) => {
-        if (confirm("Delete this aspect? All indicator data for this aspect will be lost.")) {
-            await updateAspects(aspects.filter(a => a.id !== id));
-            if (activeAspectIndex >= aspects.length - 1) onAspectChange(Math.max(0, aspects.length - 2));
-        }
+    const executeDeleteAspect = async () => {
+        if (!confirmDeleteId) return;
+        await updateAspects(aspects.filter(a => a.id !== confirmDeleteId));
+        if (activeAspectIndex >= aspects.length - 1) onAspectChange(Math.max(0, aspects.length - 2));
+        setConfirmDeleteId(null);
     };
 
     const startEditAspect = (aspect: Aspect) => {
@@ -61,8 +64,10 @@ export function useAssessmentHub(
         editingAspectId, setEditingAspectId,
         editAspectName, setEditAspectName,
         currentIdx,
-        addAspect,
-        deleteAspect,
+        confirmDeleteId, setConfirmDeleteId,
+        showAddPrompt, setShowAddPrompt,
+        executeAddAspect,
+        executeDeleteAspect,
         startEditAspect,
         saveAspectEdit
     };

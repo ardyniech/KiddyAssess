@@ -7,6 +7,7 @@ import { cn } from "../../lib/utils";
 import { Settings, Plus, Trash2, Edit2, Check, X, Info } from "lucide-react";
 import { CURRICULUM_INDICATORS } from "../../constants";
 import { db } from "../../lib/db";
+import { CustomConfirmModal } from "../molecules/CustomDialog";
 
 interface OrganismCurriculumAssessmentProps {
   studentId: string;
@@ -26,6 +27,7 @@ export function OrganismCurriculumAssessment({
   const [newIndicatorText, setNewIndicatorText] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [deleteIndicatorId, setDeleteIndicatorId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadIndicators() {
@@ -60,9 +62,13 @@ export function OrganismCurriculumAssessment({
   };
 
   const deleteIndicator = (id: string) => {
-    if (confirm("Hapus indikator ini? Data nilai murid pada indikator ini akan ikut hilang.")) {
-      saveIndicators(indicators.filter(i => i.id !== id));
-    }
+    setDeleteIndicatorId(id);
+  };
+
+  const executeDeleteIndicator = () => {
+    if (!deleteIndicatorId) return;
+    saveIndicators(indicators.filter(i => i.id !== deleteIndicatorId));
+    setDeleteIndicatorId(null);
   };
 
   const startEdit = (indicator: Indicator) => {
@@ -227,6 +233,17 @@ export function OrganismCurriculumAssessment({
           )}
         </div>
       </div>
+
+      <CustomConfirmModal 
+        isOpen={deleteIndicatorId !== null}
+        title="Hapus Indikator Kokurikuler"
+        message="Apakah Anda yakin ingin menghapus indikator ini? Seluruh data nilai murid pada indikator ini akan disingkirkan secara permanen!"
+        confirmText="Hapus Indikator"
+        cancelText="Batal"
+        variant="danger"
+        onConfirm={executeDeleteIndicator}
+        onCancel={() => setDeleteIndicatorId(null)}
+      />
     </div>
   );
 }

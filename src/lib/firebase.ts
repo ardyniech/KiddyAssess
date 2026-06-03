@@ -9,6 +9,7 @@ import {
   getDoc 
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
+import { db as localDb } from './db';
 
 const app = initializeApp(firebaseConfig);
 
@@ -44,4 +45,19 @@ export async function isAdmin(uid: string, email?: string | null): Promise<boole
 }
 
 export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
-export const logout = () => signOut(auth);
+export const logout = async () => {
+  try {
+    // Clear all tables in Dexie database
+    await localDb.students.clear();
+    await localDb.assessments.clear();
+    await localDb.photos.clear();
+    await localDb.settings.clear();
+    await localDb.narratives.clear();
+    await localDb.events.clear();
+    await localDb.tasks.clear();
+  } catch (err) {
+    console.error("Failed to clear local database:", err);
+  }
+  localStorage.clear();
+  return signOut(auth);
+};

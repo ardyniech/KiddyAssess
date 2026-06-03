@@ -36,6 +36,17 @@ export const LandingPage: React.FC = () => {
                  <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-[0.4em] max-w-xs">
                     Manajemen Akademik Minimalis untuk Pendidik Progresif.
                  </p>
+                 
+                 {/* Visi & Misi */}
+                 <div className="pt-4 border-t border-slate-100 max-w-xs block select-none">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Visi & Misi</span>
+                    <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest block">
+                       Mobility & Express Solutions
+                    </span>
+                    <span className="text-[10px] text-slate-500 block mt-1 leading-relaxed">
+                       Aksesibilitas luring instan di mana saja, didukung kecepatan asisten kecerdasan buatan menyusun rancangan rapor dalam hitungan detik.
+                    </span>
+                 </div>
               </div>
 
               <div className="space-y-4 max-w-sm">

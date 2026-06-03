@@ -92,29 +92,42 @@ export const syncService = {
   },
 
   // --- Assessments ---
-  async getAssessments(): Promise<{ assessments: StudentAssessment; narratives: Record<string, any> }> {
-    if (!auth.currentUser) return { assessments: {}, narratives: {} };
+  async getAssessments(): Promise<{ 
+    assessments: StudentAssessment; 
+    narratives: Record<string, any>;
+    kartikaScores?: Record<string, any>;
+    kartikaComments?: Record<string, any>;
+  }> {
+    if (!auth.currentUser) return { assessments: {}, narratives: {}, kartikaScores: {}, kartikaComments: {} };
     const path = 'assessments';
     try {
       const q = query(collection(db, path), where('ownerId', '==', auth.currentUser.uid));
       const snapshot = await getDocs(q);
       const assessments: StudentAssessment = {};
       const narratives: Record<string, any> = {};
+      const kartikaScores: Record<string, any> = {};
+      const kartikaComments: Record<string, any> = {};
       snapshot.docs.forEach(d => {
         const docData = d.data();
         assessments[d.id] = docData.scores || {};
         if (docData.narratives) {
           narratives[d.id] = docData.narratives;
         }
+        if (docData.kartikaScores) {
+          kartikaScores[d.id] = docData.kartikaScores;
+        }
+        if (docData.kartikaComments) {
+          kartikaComments[d.id] = docData.kartikaComments;
+        }
       });
-      return { assessments, narratives };
+      return { assessments, narratives, kartikaScores, kartikaComments };
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, path);
-      return { assessments: {}, narratives: {} };
+      return { assessments: {}, narratives: {}, kartikaScores: {}, kartikaComments: {} };
     }
   },
 
-  async saveAssessment(studentId: string, scores: any, narratives: any = null) {
+  async saveAssessment(studentId: string, scores: any, narratives: any = null, kartikaScores: any = null, kartikaComments: any = null) {
     if (!auth.currentUser) return;
     const path = `assessments/${studentId}`;
     try {
@@ -127,6 +140,12 @@ export const syncService = {
       };
       if (narratives) {
         payload.narratives = narratives;
+      }
+      if (kartikaScores) {
+        payload.kartikaScores = kartikaScores;
+      }
+      if (kartikaComments) {
+        payload.kartikaComments = kartikaComments;
       }
       await setDoc(doc(db, 'assessments', studentId), payload, { merge: true });
     } catch (error) {

@@ -84,7 +84,8 @@ async function startServer() {
       });
 
       const responseText = response.text || "{}";
-      res.json(JSON.parse(responseText.trim()));
+      const cleanedText = cleanJsonResponse(responseText);
+      res.json(JSON.parse(cleanedText));
     } catch (error: any) {
       console.error("Gemini Error:", error);
       
@@ -114,7 +115,7 @@ async function startServer() {
         instruction = "Muliakan dan poles bahasa teks penilaian ini menjadi sangat santun, profesional, penuh apresiasi pedagogik yang menyentuh, dan mengalir natural dalam bahasa Indonesia formal. Hindari pengulangan berlebih.";
       } else if (action === "shorten") {
         const charLimit = aspectName?.toLowerCase()?.includes("saran") || action === "shorten-advice" ? 200 : 450;
-        instruction = `Persingkat narasi penilaian ini agar padat, ringkas, dan ekspresif dengan batas MUTLAK yaitu di bawah ${charLimit} karakter. Pastikan makna positif utama dan esensi aspek tetap utuh terjaga tanpa kata sambung berbelit-belit.`;
+        instruction = `Persingkat narasi penilaian ini agar padat, ringkas, and ekspresif dengan batas MUTLAK yaitu di bawah ${charLimit} karakter. Pastikan makna positif utama dan esensi aspek tetap utuh terjaga tanpa kata sambung berbelit-belit.`;
       } else if (action === "constructive") {
         instruction = "Poles teks ini agar terdengar jauh lebih konstruktif (membangun), memotivasi, menekankan bahwa anak senantiasa bertumbuh, serta tawarkan dorongan apresiatif yang membakar semangat belajar anak di masa depan.";
       } else {
@@ -144,30 +145,32 @@ async function startServer() {
       });
 
       const responseText = response.text || "{}";
-      // Let's parse securely
-      let textClean = responseText.trim();
-      // Remove markdowns if any
-      if (textClean.startsWith("```json")) {
-        textClean = textClean.substring(7);
-      } else if (textClean.startsWith("```")) {
-        textClean = textClean.substring(3);
-      }
-      if (textClean.endsWith("```")) {
-        textClean = textClean.substring(0, textClean.length - 3);
-      }
-      textClean = textClean.trim();
-
-      // Safe replacement if model ends up with bracket
-      if (textClean.endsWith("]")) {
-        textClean = textClean.slice(0, -1) + "}";
-      }
-      const data = JSON.parse(textClean);
+      const cleanedText = cleanJsonResponse(responseText);
+      const data = JSON.parse(cleanedText);
       res.json({ refinedText: data.refinedText || text });
     } catch (error: any) {
       console.error("Refine Text Gemini Error:", error);
       res.status(500).json({ error: error.message || "Gagal menyempurnakan teks dengan AI." });
     }
   });
+
+  // Helper function to safely clean JSON block from Gemini
+  function cleanJsonResponse(rawText: string): string {
+    let textClean = rawText.trim();
+    if (textClean.startsWith("```json")) {
+      textClean = textClean.substring(7);
+    } else if (textClean.startsWith("```")) {
+      textClean = textClean.substring(3);
+    }
+    if (textClean.endsWith("```")) {
+      textClean = textClean.substring(0, textClean.length - 3);
+    }
+    textClean = textClean.trim();
+    if (textClean.endsWith("]")) {
+      textClean = textClean.slice(0, -1) + "}";
+    }
+    return textClean;
+  }
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

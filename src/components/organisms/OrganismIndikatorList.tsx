@@ -6,6 +6,7 @@ import { cn } from "../../lib/utils";
 import { Settings, Plus, Check, Image as ImageIcon, ImageOff } from "lucide-react";
 import { useCurriculum } from "../../context/CurriculumContext";
 import { IndicatorRow } from "./assessment-hub/IndicatorRow";
+import { CustomConfirmModal } from "../molecules/CustomDialog";
 
 interface OrganismIndikatorListProps {
   studentId: string;
@@ -44,6 +45,7 @@ export function OrganismIndikatorList({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [showPhotos, setShowPhotos] = useState(false);
+  const [deleteIndicatorId, setDeleteIndicatorId] = useState<string | null>(null);
 
   const totalCount = aspect.indicators.length;
   const ratedCount = aspect.indicators.filter(ind => scores[ind.id]).length;
@@ -68,9 +70,13 @@ export function OrganismIndikatorList({
   };
 
   const deleteIndicator = (id: string) => {
-    if (confirm("Hapus indikator ini? Data nilai murid pada indikator ini akan ikut hilang.")) {
-      saveIndicators(aspect.indicators.filter(i => i.id !== id));
-    }
+    setDeleteIndicatorId(id);
+  };
+
+  const executeDeleteIndicator = () => {
+    if (!deleteIndicatorId) return;
+    saveIndicators(aspect.indicators.filter(i => i.id !== deleteIndicatorId));
+    setDeleteIndicatorId(null);
   };
 
   const startEdit = (indicator: Indicator) => {
@@ -205,6 +211,17 @@ export function OrganismIndikatorList({
           )}
         </div>
       </div>
+
+      <CustomConfirmModal 
+        isOpen={deleteIndicatorId !== null}
+        title="Hapus Indikator Penilaian"
+        message="Apakah Anda yakin ingin menghapus indikator ini? Seluruh data nilai murid pada indikator perkembangan ini akan terbuang secara permanen!"
+        confirmText="Hapus Indikator"
+        cancelText="Batal"
+        variant="danger"
+        onConfirm={executeDeleteIndicator}
+        onCancel={() => setDeleteIndicatorId(null)}
+      />
     </div>
   );
 }

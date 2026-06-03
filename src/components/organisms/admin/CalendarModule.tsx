@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { Button, Card, Badge, SectionHeader } from '../../atoms/UIPrimitives';
+import { CustomPromptModal } from '../../molecules/CustomDialog';
 
 interface Event {
     id: string;
@@ -31,6 +32,7 @@ export const CalendarModule = ({ events, setEvents }: any) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<string | null>(new Date().toISOString().split('T')[0]);
     const [showMobileDetails, setShowMobileDetails] = useState(false);
+    const [showAddPrompt, setShowAddPrompt] = useState(false);
 
     // Calendar logic
     const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
@@ -97,12 +99,15 @@ export const CalendarModule = ({ events, setEvents }: any) => {
     const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
 
     const addEvent = () => {
-        const title = prompt("Judul Agenda / Catatan");
-        if (!title) return;
+        setShowAddPrompt(true);
+    };
+
+    const executeAddEvent = (title: string) => {
+        if (!title.trim()) return;
         
         const newEvent: Event = {
             id: `ev_${Date.now()}`,
-            title,
+            title: title.trim(),
             date: selectedDate || new Date().toISOString().split('T')[0],
             startTime: '08:00',
             endTime: '09:00',
@@ -119,6 +124,7 @@ export const CalendarModule = ({ events, setEvents }: any) => {
         
         // Show immediate visual feedback
         setSelectedDate(newEvent.date);
+        setShowAddPrompt(false);
     };
 
     return (
@@ -312,6 +318,15 @@ export const CalendarModule = ({ events, setEvents }: any) => {
                     </div>
                 )}
             </AnimatePresence>
+
+            <CustomPromptModal 
+                isOpen={showAddPrompt}
+                title="Agenda / Catatan Baru"
+                message="Masukkan judul agenda atau kegiatan untuk tanggal yang dipilih:"
+                placeholder="Judul agenda kegiatan..."
+                onConfirm={executeAddEvent}
+                onCancel={() => setShowAddPrompt(false)}
+            />
         </div>
     );
 };

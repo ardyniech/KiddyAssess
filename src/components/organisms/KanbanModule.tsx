@@ -22,6 +22,7 @@ import { KanbanTask } from '../../types';
 import { syncService } from '../../lib/firebaseService';
 import { useAuth } from '../../context/AuthContext';
 import { usePermissions } from '../../context/PermissionContext';
+import { CustomConfirmModal } from '../molecules/CustomDialog';
 
 export function KanbanModule({ tasks, setTasks }: { tasks: KanbanTask[], setTasks: React.Dispatch<React.SetStateAction<KanbanTask[]>> }) {
   const { user } = useAuth();
@@ -29,6 +30,7 @@ export function KanbanModule({ tasks, setTasks }: { tasks: KanbanTask[], setTask
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteTaskValue, setDeleteTaskValue] = useState<KanbanTask | null>(null);
 
   // Filter & Search States
   const [searchQuery, setSearchQuery] = useState('');
@@ -131,13 +133,19 @@ export function KanbanModule({ tasks, setTasks }: { tasks: KanbanTask[], setTask
       return;
     }
 
-    if (!confirm('Apakah Anda yakin ingin menghapus tugas ini?')) return;
+    setDeleteTaskValue(task);
+  };
+
+  const executeDeleteTask = async () => {
+    if (!deleteTaskValue) return;
+    const taskId = deleteTaskValue.id;
+    setDeleteTaskValue(null);
 
     // Optimistic Delete
-    setTasks(prev => prev.filter(t => t.id !== task.id));
+    setTasks(prev => prev.filter(t => t.id !== taskId));
 
     try {
-      await syncService.deleteKanbanTask(task.id);
+      await syncService.deleteKanbanTask(taskId);
     } catch (err) {
       console.error(err);
       alert('Gagal menghapus tugas dari server.');
@@ -526,6 +534,18 @@ export function KanbanModule({ tasks, setTasks }: { tasks: KanbanTask[], setTask
           </div>
         </div>
       )}
+
+      {/* Modern Confirm Dialog replaces browser native confirm */}
+      <CustomConfirmModal 
+        isOpen={deleteTaskValue !== null}
+        title="Hapus Tugas Kolaboratif"
+        message={`Apakah Anda yakin ingin menghapus tugas "${deleteTaskValue?.title}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Hapus Tugas"
+        cancelText="Batal"
+        variant="danger"
+        onConfirm={executeDeleteTask}
+        onCancel={() => setDeleteTaskValue(null)}
+      />
 
     </div>
   );

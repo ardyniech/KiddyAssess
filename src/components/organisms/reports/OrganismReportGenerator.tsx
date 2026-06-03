@@ -26,6 +26,7 @@ export function OrganismReportGenerator({
     onNarrativesChange,
     setView
 }: OrganismReportGeneratorProps) {
+    const [copiedFeedback, setCopiedFeedback] = React.useState(false);
     const {
         generating,
         activeTab,
@@ -227,8 +228,25 @@ export function OrganismReportGenerator({
                                 }
                             }
                             
-                            const encodedMessage = encodeURIComponent(message);
-                            window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+                            // Copy message to clipboard first due to potential sandboxed iframe restrictions
+                            if (navigator.clipboard) {
+                                navigator.clipboard.writeText(message)
+                                    .then(() => {
+                                        setCopiedFeedback(true);
+                                        setTimeout(() => setCopiedFeedback(false), 4500);
+                                    })
+                                    .catch(err => console.warn("Could not copy message:", err));
+                            }
+
+                            try {
+                                const encodedMessage = encodeURIComponent(message);
+                                const win = window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+                                if (!win || win.closed || typeof win.closed === 'undefined') {
+                                    console.log("Popup blocked or not opened.");
+                                }
+                            } catch (err) {
+                                console.warn("Could not open WhatsApp window:", err);
+                            }
                         }}
                         className="px-6 py-3 bg-[#25D366] text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#25D366]/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 w-full sm:w-auto justify-center cursor-pointer"
                     >
@@ -243,6 +261,23 @@ export function OrganismReportGenerator({
                     </button>
                 </div>
             </div>
+
+            {/* Custom Interactive Feedback Toast */}
+            <AnimatePresence>
+                {copiedFeedback && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 50, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                        className="fixed bottom-24 right-6 left-6 md:left-auto md:max-w-md z-50 bg-slate-900 text-white text-xs p-4 rounded-2xl shadow-xl flex items-center gap-3 border border-slate-800 no-print font-sans"
+                    >
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping flex-shrink-0" />
+                        <p className="flex-1 font-semibold leading-relaxed text-slate-100">
+                            <strong className="text-emerald-400">Teks Rapor Berhasil Disalin!</strong> Sandbox peramban membatasi pembuakaan link WhatsApp otomatis. Silakan tempel (paste) manual teks rapor langsung ke WA Orang Tua.
+                        </p>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

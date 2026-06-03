@@ -5,6 +5,7 @@ import { AtomText } from "../atoms/CommonAtoms";
 import { AssessmentHubNavigation } from './assessment-hub/AssessmentHubNavigation';
 import { useAssessmentHub } from './assessment-hub/useAssessmentHub';
 import { AssessmentHubContent } from './assessment-hub/AssessmentHubContent';
+import { CustomConfirmModal, CustomPromptModal } from '../molecules/CustomDialog';
 
 interface OrganismAssessmentHubProps {
   key?: React.Key;
@@ -41,8 +42,10 @@ export function OrganismAssessmentHub({
       editingAspectId, setEditingAspectId,
       editAspectName, setEditAspectName,
       currentIdx,
-      addAspect,
-      deleteAspect,
+      confirmDeleteId, setConfirmDeleteId,
+      showAddPrompt, setShowAddPrompt,
+      executeAddAspect,
+      executeDeleteAspect,
       startEditAspect,
       saveAspectEdit
   } = useAssessmentHub(student, students, aspects, activeAspectIndex, onAspectChange, onSelectStudent);
@@ -96,11 +99,32 @@ export function OrganismAssessmentHub({
               isManagingAspects={isManagingAspects}
               setIsManagingAspects={setIsManagingAspects}
               startEditAspect={startEditAspect}
-              deleteAspect={deleteAspect}
-              addAspect={addAspect}
+              deleteAspect={(id) => setConfirmDeleteId(id)}
+              addAspect={() => setShowAddPrompt(true)}
           />
         </div>
       </div>
+
+      {/* Modern Dialogs replaces browser native alert blocks */}
+      <CustomConfirmModal 
+        isOpen={confirmDeleteId !== null}
+        title="Hapus Aspek Perkembangan"
+        message="Apakah Anda yakin ingin menghapus aspek ini? Seluruh rumusan indikator dan data nilai anak di bawah aspek ini akan terhapus secara permanen!"
+        confirmText="Hapus Permanen"
+        cancelText="Batal"
+        variant="danger"
+        onConfirm={executeDeleteAspect}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
+
+      <CustomPromptModal 
+        isOpen={showAddPrompt}
+        title="Aspek Perkembangan Baru"
+        message="Masukkan nama kelompok aspek perkembangan baru (contoh: Nilai Agama & Moral):"
+        placeholder="Nama aspek perkembangan..."
+        onConfirm={executeAddAspect}
+        onCancel={() => setShowAddPrompt(false)}
+      />
     </div>
   );
 }
