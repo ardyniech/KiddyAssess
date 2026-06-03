@@ -136,7 +136,7 @@ export function StudentListCard({
            </div>
         ) : (
             <div className="flex items-center justify-between">
-                <span className="text-[7px] font-black uppercase tracking-widest text-[#8e8e93]">Cakupan Nilai</span>
+                <span className="text-[7px] font-black uppercase tracking-widest text-slate-500">Cakupan Nilai</span>
                 <span className="text-[9px] font-black text-black font-mono">{Math.round(progress)}%</span>
             </div>
         )}

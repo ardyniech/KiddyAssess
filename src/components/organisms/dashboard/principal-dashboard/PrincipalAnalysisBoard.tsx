@@ -34,7 +34,7 @@ export const PrincipalAnalysisBoard = ({
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2 shrink-0">
                     <div>
                         <h3 className="text-sm font-black text-indigo-950 tracking-tight">Analisis Kelas & Kelayakan Rapor</h3>
-                        <p className="text-[9px] text-[#8e8e93] uppercase font-black tracking-widest mt-0.5 font-sans">Tinjauan Akademik Kepala Sekolah</p>
+                        <p className="text-[9px] text-slate-500 uppercase font-black tracking-widest mt-0.5 font-sans">Tinjauan Akademik Kepala Sekolah</p>
                     </div>
                     <div className="flex items-center gap-1 overflow-x-auto scrollbar-none pb-1">
                         <button 
@@ -104,7 +104,7 @@ export const PrincipalAnalysisBoard = ({
                                 <div className="flex items-center gap-3 shrink-0">
                                     <div className="text-right">
                                         <div className="flex items-center gap-1">
-                                            <span className="text-[8px] font-extrabold text-[#7EC8E3] uppercase block leading-none font-sans">Absensi</span>
+                                            <span className="text-[8px] font-extrabold text-slate-500 uppercase block leading-none font-sans">Absensi</span>
                                             <span className={cn(
                                                 "text-[10px] font-extrabold font-mono",
                                                 rate >= 15 ? "text-red-500" : "text-slate-700"
@@ -122,7 +122,7 @@ export const PrincipalAnalysisBoard = ({
 
                                     <div className="text-right">
                                         <span className="text-[10px] font-black text-slate-700 font-mono block leading-none">{progress}%</span>
-                                        <span className="text-[7px] font-extrabold text-[#8e8e93] uppercase tracking-widest block mt-0.5">Progress</span>
+                                        <span className="text-[7px] font-extrabold text-slate-500 uppercase tracking-widest block mt-0.5">Progress</span>
                                     </div>
                                     <ChevronRight size={14} className="text-slate-300 group-hover:translate-x-0.5 transition-transform" />
                                 </div>

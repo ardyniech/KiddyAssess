@@ -83,7 +83,7 @@ export const AttendanceModule = ({ students = [], onEditStudent }: AttendanceMod
                 <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
                     <div>
                         <div className="flex items-center gap-2 mb-2">
-                            <span className="text-[10px] font-extrabold tracking-widest text-[#7EC8E3] uppercase bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                            <span className="text-[10px] font-extrabold tracking-widest text-indigo-750 uppercase bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
                                 PENILAIAN NON-AKADEMIK
                             </span>
                             <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />

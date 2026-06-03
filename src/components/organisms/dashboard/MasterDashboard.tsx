@@ -28,7 +28,7 @@ export const MasterDashboard = ({ setView, students = [], events = [], tasks = [
                 <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10 text-left">
                     <div>
                         <div className="flex items-center gap-2 mb-2">
-                            <span className="text-[10px] font-extrabold tracking-widest text-[#7EC8E3] uppercase bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                            <span className="text-[10px] font-extrabold tracking-widest text-indigo-750 uppercase bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
                                 Ruang Kontrol Utama Master
                             </span>
                             <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />

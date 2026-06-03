@@ -104,7 +104,7 @@ export function OrganismCurriculumAssessment({
         {/* Management Toolbar */}
         <div className="flex items-center justify-between mb-2 px-1">
           <div className="flex items-center gap-3">
-            <div className="text-[8px] font-black uppercase tracking-widest text-[#8e8e93]">
+            <div className="text-[8px] font-black uppercase tracking-widest text-slate-500">
               {indicators.length} Indikator Total
             </div>
             {(ratedCount > 0) && (

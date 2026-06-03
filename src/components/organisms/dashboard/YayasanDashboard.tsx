@@ -175,7 +175,7 @@ export const YayasanDashboard: React.FC<YayasanDashboardProps> = ({ setView, stu
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 shrink-0">
                         <div>
                             <h3 className="text-sm font-black text-indigo-950 tracking-tight">Inspeksi Roster Siswa Seluruh Cabang</h3>
-                            <p className="text-[9px] text-[#8e8e93] font-black uppercase tracking-widest mt-0.5">Tinjauan Pusat Terintegrasi</p>
+                            <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mt-0.5">Tinjauan Pusat Terintegrasi</p>
                         </div>
                         <div className="relative w-full sm:w-64">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-350" />
@@ -206,7 +206,7 @@ export const YayasanDashboard: React.FC<YayasanDashboardProps> = ({ setView, stu
                                             <h4 className="text-[11px] font-black text-slate-900 leading-none truncate uppercase tracking-tight">
                                                 {student.name}
                                             </h4>
-                                            <p className="text-[8px] font-black text-[#8e8e93] mt-1 block leading-none">
+                                            <p className="text-[8px] font-black text-slate-500 mt-1 block leading-none">
                                                 KELAS {student.kelompok} • NISN: {student.nisn || "BELUM REGISTER"}
                                             </p>
                                         </div>
@@ -215,7 +215,7 @@ export const YayasanDashboard: React.FC<YayasanDashboardProps> = ({ setView, stu
                                     <div className="flex items-center gap-3 shrink-0 text-right">
                                         <div>
                                             <span className="text-[10px] font-black text-indigo-950 font-mono block leading-none">{progress}%</span>
-                                            <span className="text-[7px] font-extrabold text-[#8e8e93] uppercase mt-1 block tracking-wider">Capaian</span>
+                                            <span className="text-[7px] font-extrabold text-slate-500 uppercase mt-1 block tracking-wider">Capaian</span>
                                         </div>
                                         <div className="px-2 py-1 bg-white border border-slate-200 text-[#2e2e33] font-black text-[8px] tracking-tight uppercase rounded">
                                             BACA SAJA

@@ -9,7 +9,7 @@ export const MasterSystemKPI = ({ studentCount }: MasterSystemKPIProps) => {
         <div id="master_system_kpi_card" className="bg-white rounded-3xl p-5 border border-black/5 text-left shadow-sm">
             <div className="flex items-center justify-between mb-3">
                 <div>
-                    <span className="text-[8px] font-black tracking-widest text-[#7EC8E3] uppercase bg-slate-50 px-2 py-0.5 rounded border border-slate-150">
+                    <span className="text-[8px] font-black tracking-widest text-[#1D4ED8] uppercase bg-slate-50 px-2 py-0.5 rounded border border-slate-150">
                         SLA & Keandalan Infra
                     </span>
                     <h3 className="text-sm font-black text-indigo-950 tracking-tight mt-1">Metrik Operasional Sistem Cerdas</h3>

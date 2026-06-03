@@ -95,7 +95,7 @@ export function OrganismHeader({
               </span>
             </div>
             {studentName && isStudentContext && (
-              <span className="text-[9px] font-extrabold text-[#7EC8E3] uppercase mt-0.5 max-w-[120px] sm:max-w-none truncate block">
+              <span className="text-[9px] font-extrabold text-indigo-700 uppercase mt-0.5 max-w-[120px] sm:max-w-none truncate block">
                 Anak: {studentName} ({studentClass || "B1"})
               </span>
             )}

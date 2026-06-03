@@ -6,6 +6,7 @@ import { MoleculeScaleSelector } from '../../molecules/Molecules';
 import { MoleculePhotoUploader } from '../../molecules/MoleculePhotoUploader';
 
 interface IndicatorRowProps {
+    key?: string | number;
     indicator: Indicator;
     index: number;
     currentScore: AssessmentScale;

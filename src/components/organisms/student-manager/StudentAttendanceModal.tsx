@@ -78,7 +78,7 @@ export function StudentAttendanceModal({ students, onClose, onSave, selectedClas
                    type="date" 
                    value={date} 
                    onChange={(e) => setDate(e.target.value)}
-                   className="text-[10px] font-black uppercase tracking-widest text-[#8e8e93] bg-transparent outline-none cursor-pointer"
+                   className="text-[10px] font-black uppercase tracking-widest text-slate-600 bg-transparent outline-none cursor-pointer"
                 />
             </div>
             <button onClick={onClose} className="p-2 bg-white rounded-full border border-slate-100 hover:bg-slate-100 transition-colors">

@@ -16,7 +16,7 @@ export const PrincipalNavigationGrid = ({ events, tasks, setView, onViewStudents
                     <CalendarCheck size={80} className="text-white" />
                 </div>
                 <div>
-                     <span className="text-[9px] font-black tracking-widest text-[#7EC8E3] uppercase block mb-1">Status Operasional</span>
+                     <span className="text-[9px] font-black tracking-widest text-sky-400 uppercase block mb-1">Status Operasional</span>
                      <h3 className="text-sm font-black text-white tracking-tight">Agenda & Tugas Aktif</h3>
                      <div className="mt-4 space-y-2">
                          <div className="flex items-center justify-between text-[10px] text-slate-300">
@@ -94,11 +94,11 @@ export const PrincipalNavigationGrid = ({ events, tasks, setView, onViewStudents
                     <div className="mt-3 flex items-center gap-4">
                         <div className="flex items-center gap-1.5">
                             <div className="w-3 h-3 rounded-full bg-emerald-400" />
-                            <span className="text-[9px] font-black text-[#8e8e93] uppercase tracking-widest">Sistem Online</span>
+                            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Sistem Online</span>
                         </div>
                         <div className="flex items-center gap-1.5">
                             <div className="w-3 h-3 rounded-full bg-indigo-400" />
-                            <span className="text-[9px] font-black text-[#8e8e93] uppercase tracking-widest">Cloud Sync Aktif</span>
+                            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Cloud Sync Aktif</span>
                         </div>
                     </div>
                 </div>

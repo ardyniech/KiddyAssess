@@ -9,9 +9,10 @@ interface NarrativeCardProps {
     isGenerating: boolean;
     onGenerate: () => void;
     onUpdate: (content: string, advice: string) => void;
+    onRefine?: (action: 'polish' | 'shorten' | 'constructive') => void;
 }
 
-export function NarrativeCard({ title, content, advice, isGenerating, onGenerate, onUpdate }: NarrativeCardProps) {
+export function NarrativeCard({ title, content, advice, isGenerating, onGenerate, onUpdate, onRefine }: NarrativeCardProps) {
     return (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden group">
             <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between print:border-none print:bg-transparent">
@@ -24,7 +25,7 @@ export function NarrativeCard({ title, content, advice, isGenerating, onGenerate
                 <button 
                     onClick={onGenerate}
                     disabled={isGenerating}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[9px] font-black uppercase tracking-widest text-[#8e8e93] hover:text-black hover:border-black transition-all disabled:opacity-50 no-print"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-black hover:border-black transition-all disabled:opacity-50 no-print"
                 >
                     {isGenerating ? <RefreshCw size={10} className="animate-spin" /> : <Sparkles size={10} />}
                     {isGenerating ? "Mengoptimalkan..." : "Tingkatkan dengan AI"}
@@ -33,9 +34,39 @@ export function NarrativeCard({ title, content, advice, isGenerating, onGenerate
             
             <div className="p-5 space-y-4 print:p-0">
                 <div className="space-y-2">
-                    <div className="flex items-center justify-between no-print">
+                    <div className="flex items-center justify-between no-print gap-2 py-1 flex-wrap">
                         <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Narasi Rapor</label>
-                        <span className="text-[8px] font-bold text-slate-300 uppercase">Bawaan Sistem</span>
+                        {onRefine && content ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                                <span className="text-[8px] font-black uppercase text-slate-300 mr-1 select-none">Tuning AI:</span>
+                                <button 
+                                    onClick={() => onRefine('polish')}
+                                    disabled={isGenerating}
+                                    title="Poles bahasa menjadi indah & formal"
+                                    className="px-2 py-0.5 bg-slate-50 border border-slate-200 text-slate-700 text-[8px] font-extrabold uppercase rounded hover:bg-indigo-50 hover:text-indigo-600 transition-all select-none hover:border-indigo-100 disabled:opacity-50 cursor-pointer"
+                                >
+                                    Poles ✨
+                                </button>
+                                <button 
+                                    onClick={() => onRefine('shorten')}
+                                    disabled={isGenerating}
+                                    title="Persingkat kalimat agar hemat ruang cetak"
+                                    className="px-2 py-0.5 bg-slate-50 border border-slate-200 text-slate-700 text-[8px] font-extrabold uppercase rounded hover:bg-rose-50 hover:text-rose-600 transition-all select-none hover:border-rose-100 disabled:opacity-50 cursor-pointer"
+                                >
+                                    Persingkat ✂️
+                                </button>
+                                <button 
+                                    onClick={() => onRefine('constructive')}
+                                    disabled={isGenerating}
+                                    title="Ubah nada menjadi penuh dorongan motivasi"
+                                    className="px-2 py-0.5 bg-slate-50 border border-slate-200 text-slate-700 text-[8px] font-extrabold uppercase rounded hover:bg-emerald-50 hover:text-emerald-600 transition-all select-none hover:border-emerald-100 disabled:opacity-50 cursor-pointer"
+                                >
+                                    Konstruktif 🌱
+                                </button>
+                            </div>
+                        ) : (
+                            <span className="text-[8px] font-bold text-slate-300 uppercase select-none">Bawaan Sistem</span>
+                        )}
                     </div>
                     <div className="hidden print:block text-xs sm:text-sm font-medium text-black leading-relaxed whitespace-pre-wrap pb-2">
                         {content}

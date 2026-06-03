@@ -106,7 +106,7 @@ export function StudentEditModal({ student, onClose, onSubmit }: StudentEditModa
         <div className="p-4 bg-slate-50 flex items-center gap-2 border-t border-slate-100">
            <button 
               onClick={onClose}
-              className="flex-1 px-4 py-3 bg-white border border-slate-200 text-[#8e8e93] rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-colors"
+              className="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-colors"
            >
               Batal
            </button>

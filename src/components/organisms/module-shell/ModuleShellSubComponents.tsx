@@ -42,7 +42,7 @@ export const StudentSelector = ({ students, activeModule, moduleProps }: { stude
                 <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-left">
                     <div className="flex items-center gap-2 mb-1.5">
                         <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-[#7EC8E3]">Mulai Mengisi</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600">Mulai Mengisi</span>
                     </div>
                     <h3 className="text-base font-black text-indigo-950 uppercase tracking-tight">
                         PILIH ANAK UNTUK MODUL {activeModule.name}

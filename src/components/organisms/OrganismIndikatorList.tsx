@@ -111,7 +111,7 @@ export function OrganismIndikatorList({
         {/* Management Toolbar */}
         <div className="flex items-center justify-between mb-2 px-1">
           <div className="flex items-center gap-2">
-            <div className="text-[8px] font-black uppercase tracking-widest text-[#8e8e93]">
+            <div className="text-[8px] font-black uppercase tracking-widest text-slate-500">
               {aspect.indicators.length} Indikator Total
             </div>
             {(progress > 0 || ratedCount > 0) && (

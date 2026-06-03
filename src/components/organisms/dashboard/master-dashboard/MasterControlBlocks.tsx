@@ -17,7 +17,7 @@ export const MasterControlBlocks = ({ setView }: MasterControlBlocksProps) => {
                     <ShieldCheck size={80} />
                 </div>
                 <div>
-                    <span className="text-[10px] font-black tracking-widest text-[#7EC8E3] uppercase">Keamanan Inti</span>
+                    <span className="text-[10px] font-black tracking-widest text-sky-400 uppercase">Keamanan Inti</span>
                     <h3 className="text-lg font-black tracking-tight leading-tight mt-1 italic">Role Vault & Hak Akses</h3>
                     <p className="text-xs text-indigo-200 mt-1 leading-normal opacity-80 max-w-sm">
                         Kelola siapa saja yang bisa masuk ke platform dengan setelan izin khusus untuk Guru, Kepsek, dan Operator.

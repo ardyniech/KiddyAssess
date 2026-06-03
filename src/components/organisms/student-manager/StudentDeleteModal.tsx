@@ -39,7 +39,7 @@ export function StudentDeleteModal({ student, onClose, onConfirm }: StudentDelet
         <div className="p-3 bg-slate-50 flex gap-2 border-t border-slate-100">
            <button 
               onClick={onClose}
-              className="flex-1 px-4 py-3 bg-white border border-slate-200 text-[#8e8e93] rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-slate-50 transition-colors"
+              className="flex-1 px-4 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-slate-50 transition-colors"
            >
               Batal
            </button>
