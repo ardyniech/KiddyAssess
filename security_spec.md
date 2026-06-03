@@ -1,24 +1,17 @@
-# Security Specification for KiddyAssess
+# Security Specification
 
 ## 1. Data Invariants
-- A Student must always have an `ownerId` matching the authenticated teacher's UID.
-- An Assessment must correspond to a valid Student (verified via matching `ownerId`).
-- Settings are unique per teacher (`userId`).
-- All timestamps (`createdAt`, `updatedAt`) must be server-generated.
+- **Students**: Every student must be owned by a specific `ownerId` (the user's Firebase UID) and linked to a class (`kelompok`).
+- **Assessments**: Assessments must be scoped to the `studentId`, and restricted to the `ownerId` of the owning teacher.
+- **Settings**: Each user has a single settings document in `settings/{uid}`.
+- **User Roles**: Roles are determined in a trusted collection `account_roles`.
 
-## 2. The "Dirty Dozen" Payloads (Denial Expected)
-1. **Identity Spoofing**: Attempt to create a student with a different `ownerId`.
-2. **Orphan Assessment**: Create an assessment for a student belonging to another user.
-3. **Ghost Field Injection**: Add `isAdmin: true` to a Settings document.
-4. **Invalid Scale**: Update an assessment with a score not in `['BB', 'MB', 'BSH', 'BSB']`.
-5. **Timestamp Forge**: Manually set a future `updatedAt`.
-6. **Huge ID**: Use a 2KB string as a `studentId`.
-7. **Cross-User Read**: Try to `get` a student document belonging to another teacher.
-8. **Malicious Regex**: Use an ID containing SQL-injection-like characters (though ID matches regex).
-9. **Settings Overwrite**: Try to update `ownerId` of an existing settings document.
-10. **Shadow Student**: Create a student missing the required `semester` field.
-11. **PII Leak**: Query list of all students without filtering by `ownerId`.
-12. **Photo Hijack**: Upload photo metadata for a student the user doesn't own.
+## 2. The "Dirty Dozen" Payloads (Examples)
+1. **Student Poisoning**: Payload with `ownerId` set to another user's UID. Expect: PERMISSION_DENIED.
+2. **Accessing Other's Students**: `list` query from one user to retrieve students of another. Expect: Empty list (because of rule-side filtering).
+3. **Ghost Write**: Writing a student without `ownerId`. Expect: PERMISSION_DENIED.
+4. **Role Escalation**: Modifying `account_roles` document. Expect: PERMISSION_DENIED.
+5. **PII Leak**: Accessing `users` profile of another user using `get`. Expect: PERMISSION_DENIED (except for admin).
 
-## 3. Test Runner Plan
-- We will verify that each of these payloads results in `PERMISSION_DENIED` using local simulation logic or comprehensive rules.
+## 3. Test Runner
+We will utilize Firestore Security Rules Simulator or unit tests in JS/TS as specified in the skill documentation to verify these invariants.

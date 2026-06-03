@@ -46,23 +46,32 @@ interface MoleculeStudentCardProps {
 export function MoleculeStudentCard({ name, studentClass, semester, photoUrl, progress, active, onClick }: MoleculeStudentCardProps) {
   const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   
-  // Choose a pastel accent based on name/index logic similar to TeacherDashboard
+  // Choose a sticker for avatar placeholder
   const CHILD_STICKERS = ["🦁", "🐼", "🐨", "🦊", "🐰", "🐯", "🐱", "🐶", "🐵", "🐸", "🐤", "🦄", "🐙", "🐢", "🐧", "🦉"];
   const sticker = CHILD_STICKERS[name.length % CHILD_STICKERS.length];
+
+  // Modern progress bar colors matching high-contrast targets
+  const getProgressBg = (p: number) => {
+    if (p === 100) return "bg-emerald-500";
+    if (p > 50) return "bg-indigo-600";
+    if (p > 0) return "bg-amber-500";
+    return "bg-slate-200";
+  };
 
   return (
     <div
       onClick={onClick}
       className={cn(
-        "p-2.5 rounded-2xl border transition-all duration-300 cursor-pointer flex items-center gap-3 shadow-sm",
+        "p-3 rounded-2xl border transition-all duration-300 cursor-pointer flex items-center gap-3 shadow-sm select-none",
         active 
-          ? "bg-[#AEE6FF]/10 border-[#7EC8E3] ring-1 ring-[#7EC8E3] shadow-md" 
-          : "bg-white border-black/5 hover:bg-slate-50 hover:border-slate-200"
+          ? "bg-indigo-50/60 border-indigo-600 ring-2 ring-indigo-600 shadow-md font-bold scale-[1.01]" 
+          : "bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-350 hover:shadow-md"
       )}
     >
+      {/* Touch-safe min 40px avatar container */}
       <div className={cn(
-        "w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xs shrink-0 shadow-inner overflow-hidden relative",
-        active ? "bg-[#7EC8E3]" : "bg-slate-50 border border-slate-100 text-slate-300"
+        "w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-inner overflow-hidden relative transition-colors duration-300",
+        active ? "bg-indigo-600 text-white" : "bg-slate-100 border border-slate-250 text-slate-500"
       )}>
         {photoUrl ? (
           <img 
@@ -80,33 +89,34 @@ export function MoleculeStudentCard({ name, studentClass, semester, photoUrl, pr
       
       <div className="grow overflow-hidden text-left">
         <div className={cn(
-          "text-[11px] font-black truncate leading-tight mb-1",
-          active ? "text-indigo-950" : "text-black"
+          "text-[11px] font-black truncate leading-tight mb-1 uppercase tracking-tight",
+          active ? "text-indigo-950" : "text-slate-900"
         )}>{name}</div>
         
         <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
                 <div className={cn(
-                  "w-1.5 h-1.5 rounded-full shrink-0",
-                  progress === 100 ? "bg-[#9EE493]" : progress > 0 ? "bg-[#FFE699]" : "bg-[#FFB3B3]"
+                  "w-2 h-2 rounded-full shrink-0",
+                  getProgressBg(progress)
                 )} />
                 <span className={cn(
-                  "text-[8px] uppercase tracking-tight font-extrabold",
-                  active ? "text-indigo-800" : "text-slate-400"
+                  "text-[8px] uppercase tracking-wider font-extrabold",
+                  active ? "text-indigo-800" : "text-slate-650"
                 )}>
                   {studentClass} • Smt {semester}
                 </span>
             </div>
-            <span className="text-[10px] font-black ml-auto opacity-40 tabular-nums">{Math.round(progress)}%</span>
+            <span className={cn(
+              "text-[9px] font-bold ml-auto font-mono",
+              active ? "text-indigo-900" : "text-slate-700"
+            )}>{Math.round(progress)}%</span>
         </div>
         
-        <div className="w-full h-1 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
+        {/* Modern progress indicator track */}
+        <div className="w-full h-1.5 bg-slate-100 border border-slate-200/40 rounded-full mt-2 overflow-hidden">
             <div 
-                className="h-full rounded-full transition-all duration-500"
-                style={{ 
-                    width: `${progress}%`,
-                    backgroundColor: progress === 100 ? '#9EE493' : progress > 0 ? '#FFE699' : '#FFB3B3'
-                }}
+                className={cn("h-full rounded-full transition-all duration-500", getProgressBg(progress))}
+                style={{ width: `${progress}%` }}
             />
         </div>
       </div>

@@ -164,7 +164,7 @@ export function StudentAttendanceModal({ students, onClose, onSave, selectedClas
             </button>
             <button 
                 onClick={handleSave}
-                className="px-5 sm:px-8 py-2.5 sm:py-3 bg-black text-white rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 sm:gap-2 hover:bg-slate-900 transition-all shadow-xl shadow-black/10"
+                className="px-5 sm:px-8 py-2.5 sm:py-3 bg-indigo-600 hover:bg-indigo-700 border border-indigo-700 text-white rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 sm:gap-2 transition-all shadow"
             >
                 <Save size={14} />
                 Simpan Kehadiran

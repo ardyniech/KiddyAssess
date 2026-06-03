@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./context/AuthContext";
 import { CurriculumProvider } from "./context/CurriculumContext";
 import { SchoolProfileProvider } from "./context/SchoolProfileContext";
@@ -16,6 +17,7 @@ export default function RootApp() {
         <SchoolProfileProvider>
           <CurriculumProvider>
             <App />
+            <Toaster position="bottom-right" />
           </CurriculumProvider>
         </SchoolProfileProvider>
       </ThemeProvider>

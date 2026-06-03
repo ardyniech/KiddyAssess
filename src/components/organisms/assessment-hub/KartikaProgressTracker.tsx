@@ -11,21 +11,21 @@ export function KartikaProgressTracker({ aspectName, ratedCount, totalCount }: K
   const aspectPercentClamped = Math.min(100, Math.max(0, aspectPercent));
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800/80 rounded-xl p-2.5 px-4 mb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm text-left">
-      <div>
-        <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">PROGRESS 5NK NASIONAL</span>
-        <span className="text-xs font-black text-rose-600 dark:text-rose-400 leading-tight">
+    <div className="bento-card mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 text-left">
+      <div className="flex-1">
+        <span className="text-[10px] font-black uppercase tracking-widest text-[#822a3f] block mb-0.5">PROGRESS 5NK NASIONAL</span>
+        <span className="text-sm font-black text-rose-950 leading-tight">
           {aspectName}
         </span>
       </div>
-      <div className="flex items-center gap-3.5 flex-1 sm:max-w-xs justify-end">
-        <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+      <div className="flex items-center gap-3 w-full sm:max-w-[200px] justify-between">
+        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-rose-100/40">
           <div 
-            className="bg-rose-600 h-full transition-all duration-300" 
+            className="bg-rose-600 h-full transition-all duration-300 rounded-full" 
             style={{ width: `${aspectPercentClamped}%` }}
           />
         </div>
-        <span className="text-xs font-black text-rose-600 dark:text-rose-400 shrink-0 tabular-nums">
+        <span className="text-xs font-black text-rose-700 shrink-0 tabular-nums">
           {ratedCount}/{totalCount}
         </span>
       </div>

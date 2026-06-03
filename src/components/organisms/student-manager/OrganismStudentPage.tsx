@@ -15,6 +15,7 @@ import { StudentListCard } from './StudentListCard';
 import { StudentDetailModal } from './StudentDetailModal';
 import { StudentAttendanceModal } from './StudentAttendanceModal';
 import { usePermissions } from '../../../context/PermissionContext';
+import { EmptyState } from '../../atoms/EmptyState';
 
 interface OrganismStudentPageProps {
   key?: React.Key;
@@ -99,7 +100,7 @@ export function OrganismStudentPage({
         <div className="bg-white rounded-2xl border border-slate-100 p-4 flex flex-col gap-4">
           <div className="flex items-center justify-between">
              <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white shadow-lg">
+                 <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-md shadow-indigo-100">
                     <Users size={20} />
                  </div>
                  <div>
@@ -120,7 +121,7 @@ export function OrganismStudentPage({
                     onClick={() => setIsManageMode(!isManageMode)}
                     className={cn(
                       "flex items-center justify-center w-10 h-10 rounded-lg",
-                      isManageMode ? "bg-amber-500 text-white shadow-sm" : "bg-white text-slate-400 hover:text-black border border-slate-100"
+                      isManageMode ? "bg-amber-500 text-white shadow-sm" : "bg-white text-slate-400 hover:text-indigo-600 border border-slate-100"
                     )}
                   >
                     <MoreVertical size={18} />
@@ -147,14 +148,14 @@ export function OrganismStudentPage({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Cari siswa..."
-                  className="w-full bg-slate-50 border border-slate-100 rounded-lg pl-9 pr-4 py-2.5 text-xs font-bold text-black focus:outline-none focus:border-black transition-all"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-lg pl-9 pr-4 py-2.5 text-xs font-bold text-black focus:outline-none focus:border-indigo-600 transition-all"
                 />
              </div>
              
              {!isReadOnly && (
                <button 
                   onClick={onAddStudent}
-                  className="flex items-center justify-center w-10 h-10 bg-black text-white rounded-lg shadow-md hover:scale-105 active:scale-95 transition-all outline-none cursor-pointer"
+                  className="flex items-center justify-center w-10 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-md shadow-indigo-100 border border-indigo-700"
                >
                   <UserPlus size={16} />
                </button>
@@ -164,17 +165,19 @@ export function OrganismStudentPage({
 
         {/* Filters and Layout Actions */}
         <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-1 scrollbar-none px-1 shrink-0">
                 {['all', ...classes].map(cls => (
                     <button 
                         key={cls || 'default'}
                         onClick={() => setFilterClass(cls)}
                         className={cn(
-                            "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all",
-                            filterClass === cls ? "bg-black text-white" : "bg-white text-slate-400 border border-slate-100 shadow-sm"
+                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border shrink-0 outline-none cursor-pointer",
+                            filterClass === cls 
+                                ? "bg-indigo-600 border-indigo-700 text-white shadow-sm" 
+                                : "bg-white border-slate-200 text-slate-600 hover:border-slate-350 hover:bg-slate-50"
                         )}
                     >
-                        {cls === 'all' ? 'Semua Kelas' : cls}
+                        {cls === 'all' ? 'Semua Kelas' : `Kelas ${cls}`}
                     </button>
                 ))}
             </div>
@@ -213,10 +216,16 @@ export function OrganismStudentPage({
         </motion.div>
 
         {filteredStudents.length === 0 && (
-          <div key="empty-state" className="py-20 flex flex-col items-center justify-center opacity-20">
-             <Users size={48} className="mb-4" />
-             <p className="text-sm font-black uppercase tracking-widest">Tidak Ada Siswa</p>
-          </div>
+          <EmptyState
+            key="empty-state"
+            icon={Users}
+            title="Tidak Ada Siswa Terdaftar"
+            description={search ? "Kombinasi filter dan pencarian Anda tidak menemukan siswa." : "Belum ada siswa yang ditambahkan ke pangkalan data sekolah Anda untuk rombel ini."}
+            actionLabel={!isReadOnly ? "Tambah Siswa Baru" : undefined}
+            onActionClick={!isReadOnly ? onAddStudent : undefined}
+            illustrationType="users"
+            className="py-16 bg-slate-50/55 rounded-3xl border border-dashed border-slate-200/80 my-4"
+          />
         )}
       </div>
 

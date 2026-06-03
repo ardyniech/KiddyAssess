@@ -2,6 +2,8 @@ import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Student } from '../../../../types';
 import { cn } from '../../../../lib/utils';
+import { EmptyState } from '../../../atoms/EmptyState';
+import { Users } from 'lucide-react';
 
 // Playful animal sticker tags for empty avatars
 const CHILD_STICKERS = ["🦁", "🐼", "🐨", "🦊", "🐰", "🐯", "🐱", "🐶", "🐵", "🐸", "🐤", "🦄", "🐙", "🐢", "🐧", "🦉"];
@@ -43,15 +45,14 @@ export const TeacherDirectory = ({
             </div>
 
             {students.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-slate-100 p-6 text-center flex flex-col items-center justify-center shadow-sm">
-                    <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 text-2xl mb-2">
-                        🕵️
-                    </div>
-                    <h4 className="text-xs font-black text-[#1A365D] uppercase">Anak didik tidak ditemukan</h4>
-                    <p className="text-[10px] text-slate-400 mt-1 max-w-sm font-medium">
-                        Cari dengan ejaan nama lain, kelompok rombel, atau tambahkan riwayat anak didik baru di atas.
-                    </p>
-                </div>
+                <EmptyState
+                    icon={Users}
+                    title="Anak Didik Tidak Ditemukan"
+                    description="Cari dengan kata kunci nama lain, sesuaikan filter kelompok rombel, atau daftarkan murid didik baru di modul kesiswaan."
+                    illustrationType="users"
+                    size="normal"
+                    className="bg-white rounded-3xl border border-slate-200/80 p-12 shadow-xs"
+                />
             ) : (
                 <div className="flex flex-col gap-1.5">
                     {students.map((student, studentIndex) => {

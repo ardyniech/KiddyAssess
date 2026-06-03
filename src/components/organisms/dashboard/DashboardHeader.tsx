@@ -31,17 +31,17 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 <div className="flex gap-4 sm:border-l border-slate-100 sm:pl-4">
                     <div>
                         <span className="block text-[8px] font-black uppercase tracking-widest text-slate-300">Indikator</span>
-                        <span className="text-lg font-black text-black leading-none">{totalIndicators}</span>
+                        <span className="text-lg font-black text-slate-900 leading-none">{totalIndicators}</span>
                     </div>
                     <div>
                         <span className="block text-[8px] font-black uppercase tracking-widest text-slate-300">Tertilai</span>
-                        <span className="text-lg font-black text-black leading-none">{totalScoresSubmitted}</span>
+                        <span className="text-lg font-black text-slate-900 leading-none">{totalScoresSubmitted}</span>
                     </div>
                     {onViewStudents && (
                         <div className="flex items-center ml-2">
                              <button 
                                 onClick={onViewStudents}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-black text-white rounded-lg text-[9px] font-black uppercase tracking-tight shadow-md hover:scale-105 active:scale-95 transition-all"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[9px] font-black uppercase tracking-tight shadow border border-indigo-700 hover:scale-105 active:scale-95 transition-all cursor-pointer"
                              >
                                 <Users size={10} />
                                 Database Siswa

@@ -21,6 +21,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { UserRole } from '../../../types';
 import { APP_MODULES } from '../../../registry/appModules';
 import { Button, Card, Badge, SectionHeader } from '../../atoms/UIPrimitives';
+import { EmptyState } from '../../atoms/EmptyState';
 
 export const AccessControlModule = () => {
     const { user } = useAuth();
@@ -186,7 +187,14 @@ export const AccessControlModule = () => {
                                             );
                                         })}
                                     {Object.keys(accountRoles).filter(k => k.toLowerCase() !== 'ardy_syafii@gmail_com').length === 0 && (
-                                        <div className="text-[9px] text-slate-600 italic py-4 text-center">Belum ada akun terdaftar</div>
+                                        <EmptyState
+                                            icon={ShieldAlert}
+                                            title="Whitelist Kosong"
+                                            description="Belum ada akun eksternal lain yang didaftarkan ke dalam sistem otorisasi."
+                                            illustrationType="none"
+                                            size="compact"
+                                            className="py-6 bg-slate-50 border border-dashed border-slate-200 rounded-2xl"
+                                        />
                                     )}
                                 </div>
                             </section>
@@ -261,9 +269,14 @@ export const AccessControlModule = () => {
                                             );
                                         })}
                                     {discoveredUsers.filter(u => u.email?.toLowerCase().trim() !== 'ardy.syafii@gmail.com').length === 0 && (
-                                        <div className="text-[10px] text-slate-500 italic py-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                                            Belum ada log aktivitas pengguna lain
-                                        </div>
+                                        <EmptyState
+                                            icon={Fingerprint}
+                                            title="Belum Ada Log Aktivitas"
+                                            description="Tidak ada log masuk atau tindakan pengguna eksternal lain yang terekam pada server dalam kurun waktu ini."
+                                            illustrationType="none"
+                                            size="compact"
+                                            className="py-10 bg-slate-50 border border-dashed border-slate-200 rounded-2xl"
+                                        />
                                     )}
                                 </div>
                             </section>
@@ -336,7 +349,7 @@ export const AccessControlModule = () => {
                                     <button 
                                         onClick={handleManualSave}
                                         disabled={isSavingSettings}
-                                        className="bg-slate-900 hover:bg-black text-white text-[9.5px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                                        className="bg-indigo-600 hover:bg-indigo-700 border border-indigo-700 text-white text-[9.5px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-all shadow cursor-pointer disabled:opacity-50"
                                     >
                                         {isSavingSettings ? (
                                             <RefreshCw size={12} className="animate-spin" />

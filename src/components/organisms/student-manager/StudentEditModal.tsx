@@ -28,7 +28,7 @@ export function StudentEditModal({ student, onClose, onSubmit }: StudentEditModa
         className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100"
       >
         {/* Modal Header */}
-        <div className="bg-black p-4 flex items-center justify-between text-white">
+        <div className="bg-indigo-600 p-4.5 flex items-center justify-between text-white border-b border-indigo-700">
           <div className="flex items-center gap-2">
             <Edit2 size={16} />
             <h2 className="text-xs font-black uppercase tracking-widest">Edit Record Siswa</h2>
@@ -50,7 +50,7 @@ export function StudentEditModal({ student, onClose, onSubmit }: StudentEditModa
                        <User size={32} className="text-slate-200" />
                     )}
                  </div>
-                 <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white border-2 border-white shadow-lg">
+                 <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white border-2 border-white shadow shadow-indigo-100">
                     <Camera size={14} />
                  </div>
               </div>
@@ -63,7 +63,7 @@ export function StudentEditModal({ student, onClose, onSubmit }: StudentEditModa
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
                     placeholder="Contoh: Muhammad Ali"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-black focus:border-black outline-none transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-800 focus:border-indigo-600 outline-none transition-all"
                  />
               </div>
 
@@ -74,7 +74,7 @@ export function StudentEditModal({ student, onClose, onSubmit }: StudentEditModa
                       value={formData.kelompok}
                       onChange={e => setFormData({...formData, kelompok: e.target.value})}
                       placeholder="B2"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-black focus:border-black outline-none transition-all"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-black focus:border-indigo-600 outline-none transition-all"
                   />
                 </div>
                 <div className="space-y-1">
@@ -82,7 +82,7 @@ export function StudentEditModal({ student, onClose, onSubmit }: StudentEditModa
                   <select 
                       value={formData.semester}
                       onChange={e => setFormData({...formData, semester: e.target.value})}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-black focus:border-black outline-none transition-all appearance-none"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-black focus:border-indigo-600 outline-none transition-all appearance-none"
                   >
                      <option value="I (Satu)">Semester I</option>
                      <option value="II (Dua)">Semester II</option>
@@ -96,7 +96,7 @@ export function StudentEditModal({ student, onClose, onSubmit }: StudentEditModa
                   value={formData.photoUrl || ''}
                   onChange={e => setFormData({...formData, photoUrl: e.target.value})}
                   placeholder="https://..."
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-black focus:border-black outline-none transition-all"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-800 focus:border-indigo-600 outline-none transition-all"
                 />
               </div>
            </div>
@@ -112,7 +112,7 @@ export function StudentEditModal({ student, onClose, onSubmit }: StudentEditModa
            </button>
            <button 
               onClick={() => onSubmit(formData)}
-              className="flex-[1.5] px-4 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-black/10 hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="flex-[1.5] px-4 py-3 bg-indigo-600 hover:bg-indigo-700 border border-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer outline-none"
            >
               Simpan Perubahan
            </button>

@@ -43,14 +43,11 @@
 
 @layer utilities {
   .bento-card {
-    @apply bg-white rounded-3xl p-5 transition-all duration-300;
-    border: var(--border-hairline);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.01), 0 10px 20px -5px rgba(0,0,0,0.02);
+    @apply bg-white border border-slate-300 rounded-3xl shadow-md p-5 transition-all duration-300;
   }
   
   .bento-card:hover {
-    @apply shadow-xl shadow-slate-200/50 -translate-y-0.5;
-    border-color: rgba(0,0,0,0.1);
+    @apply shadow-lg border-indigo-400;
   }
 
   .glass-effect {

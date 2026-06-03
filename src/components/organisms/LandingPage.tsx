@@ -14,7 +14,7 @@ export const LandingPage: React.FC = () => {
     };
 
     return (
-        <div className="h-screen w-full bg-white flex flex-col items-center justify-center p-6 sm:p-24 overflow-hidden relative selection:bg-black selection:text-white">
+        <div className="h-screen w-full bg-white flex flex-col items-center justify-center p-6 sm:p-24 overflow-hidden relative selection:bg-indigo-650 selection:text-white">
            {/* Background Noise/Grid (Subtle) */}
            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
                 style={{ backgroundImage: "radial-gradient(#000 0.5px, transparent 0.5px), radial-gradient(#000 0.5px, transparent 0.5px)", backgroundSize: "20px 20px" }} />
@@ -25,11 +25,11 @@ export const LandingPage: React.FC = () => {
              className="w-full max-w-xl space-y-12 relative z-10"
            >
               <div className="space-y-4">
-                 <div className="w-12 h-12 bg-black rounded flex items-center justify-center mb-8 shadow-2xl">
+                 <div className="w-12 h-12 bg-indigo-600 border border-indigo-700 rounded-2xl flex items-center justify-center mb-8 shadow-md">
                     <School className="w-6 h-6 text-white" />
                  </div>
                  
-                 <h1 className="text-6xl sm:text-8xl font-black text-black tracking-tighter leading-[0.85] uppercase">
+                 <h1 className="text-6xl sm:text-8xl font-black text-slate-900 tracking-tighter leading-[0.85] uppercase">
                     Kiddy<br /><span className="opacity-20">Apps</span>
                  </h1>
                  
@@ -40,7 +40,7 @@ export const LandingPage: React.FC = () => {
                  {/* Visi & Misi */}
                  <div className="pt-4 border-t border-slate-100 max-w-xs block select-none">
                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-1">Visi & Misi</span>
-                    <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest block">
+                    <span className="text-[11px] font-black text-slate-950 uppercase tracking-widest block">
                        Mobility & Express Solutions
                     </span>
                     <span className="text-[10px] text-slate-500 block mt-1 leading-relaxed">
@@ -52,7 +52,7 @@ export const LandingPage: React.FC = () => {
               <div className="space-y-4 max-w-sm">
                 <button 
                     onClick={signInWithGoogle}
-                    className="w-full py-5 bg-black text-white rounded-lg font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-4 active:scale-[0.98] transition-all shadow-2xl"
+                    className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 border border-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-4 active:scale-[0.98] transition-all shadow-md cursor-pointer"
                 >
                     Masuk dengan Google
                 </button>

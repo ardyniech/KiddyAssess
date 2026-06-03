@@ -20,7 +20,7 @@ export const StudentUpsertForm: React.FC<StudentUpsertFormProps> = ({
 }) => {
     return (
         <div className="flex-1 p-3 flex flex-col overflow-y-auto custom-scrollbar">
-            <div className="text-[10px] font-black text-black uppercase tracking-widest mb-4 text-center">
+            <div className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-4 text-center">
                 {editingStudent ? "Ubah Entri" : "Pengaturan Entri Baru"}
             </div>
             <form onSubmit={onSubmit} className="space-y-4 p-4 rounded-xl bg-white border border-slate-100 shadow-sm">
@@ -42,7 +42,7 @@ export const StudentUpsertForm: React.FC<StudentUpsertFormProps> = ({
                         <select 
                             value={formData.kelompok} 
                             onChange={e => setFormData({ ...formData, kelompok: e.target.value })}
-                            className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] font-black text-black focus:outline-none focus:border-black appearance-none"
+                            className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] font-black text-slate-800 focus:outline-none focus:border-indigo-600 appearance-none"
                         >
                             <option value="A1">A1</option><option value="A2">A2</option><option value="B1">B1</option><option value="B2">B2</option>
                         </select>
@@ -54,7 +54,7 @@ export const StudentUpsertForm: React.FC<StudentUpsertFormProps> = ({
                         <select 
                             value={formData.semester} 
                             onChange={e => setFormData({ ...formData, semester: e.target.value })}
-                            className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] font-black text-black focus:outline-none focus:border-black appearance-none"
+                            className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] font-black text-slate-800 focus:outline-none focus:border-indigo-600 appearance-none"
                         >
                             <option value="1">1</option><option value="2">2</option>
                         </select>
@@ -64,7 +64,7 @@ export const StudentUpsertForm: React.FC<StudentUpsertFormProps> = ({
                         <select 
                             value={formData.semesterType} 
                             onChange={e => setFormData({ ...formData, semesterType: e.target.value as any })}
-                            className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] font-black text-black focus:outline-none focus:border-black appearance-none"
+                            className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] font-black text-slate-800 focus:outline-none focus:border-indigo-600 appearance-none"
                         >
                             <option value="Ganjil">Ganjil</option><option value="Genap">Genap</option>
                         </select>
@@ -76,8 +76,8 @@ export const StudentUpsertForm: React.FC<StudentUpsertFormProps> = ({
                 </div>
                 <MoleculeFormInput label="URL Foto Profil" value={formData.photoUrl || ""} onChange={e => setFormData({ ...formData, photoUrl: e.target.value })} placeholder="https://..." />
                 <div className="flex gap-2 pt-3">
-                    <button type="button" onClick={onCancel} className="flex-1 py-1.5 text-[9px] font-black text-slate-400 hover:text-black transition-colors uppercase">Batal</button>
-                    <button type="submit" className="flex-1 py-1.5 bg-black rounded-lg text-[9px] font-black text-white hover:bg-slate-800 transition-all uppercase tracking-widest">
+                    <button type="button" onClick={onCancel} className="flex-1 py-1.5 text-[9px] font-black text-slate-455 hover:text-indigo-600 transition-colors uppercase cursor-pointer">Batal</button>
+                    <button type="submit" className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 border border-indigo-700 rounded-xl text-[9px] font-black text-white transition-all uppercase tracking-widest cursor-pointer shadow-sm">
                         {editingStudent ? "Perbarui" : "Konfirmasi"}
                     </button>
                 </div>

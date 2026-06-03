@@ -44,15 +44,15 @@ export const DashboardStudentRoster: React.FC<DashboardStudentRosterProps> = ({
                             <h3 className="text-[11px] font-black tracking-tight mb-0.5 uppercase truncate leading-none text-black">
                                 {student.name}
                             </h3>
-                            <div className="flex items-center justify-between text-black">
+                            <div className="flex items-center justify-between text-slate-850">
                                 <span className="text-[8px] font-bold opacity-40 uppercase tracking-tighter">
                                     {student.kelompok || student.class}
                                 </span>
                                 <span className="text-[8px] font-black">{percentage}%</span>
                             </div>
-                            <div className="mt-2 h-[1px] w-full bg-slate-50 rounded-full overflow-hidden">
+                            <div className="mt-2 h-[3px] w-full bg-slate-100 rounded-full overflow-hidden">
                                 <div 
-                                    className="h-full bg-black transition-all duration-500" 
+                                    className="h-full bg-indigo-600 transition-all duration-500" 
                                     style={{ width: `${percentage}%` }} 
                                 />
                             </div>

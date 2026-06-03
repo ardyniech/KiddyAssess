@@ -64,16 +64,33 @@ export const syncService = {
     }
   },
 
-  async saveStudent(student: Student) {
+  async saveStudent(student: Student): Promise<Student | undefined> {
     if (!auth.currentUser) return;
     const path = `students/${student.id}`;
     try {
-      const now = Date.now();
-      await setDoc(doc(db, 'students', student.id), {
-        ...student,
-        ownerId: auth.currentUser.uid,
-        updatedAt: now
+      const docRef = doc(db, 'students', student.id);
+      const docSnap = await getDoc(docRef);
+      let finalStudent = { ...student };
+      
+      if (docSnap.exists()) {
+        const cloudStudent = docSnap.data() as Student;
+        
+        // Merge cloud fields with local fields
+        finalStudent = {
+          ...cloudStudent,
+          ...student,
+          id: student.id,
+          updatedAt: Math.max(student.updatedAt || 0, cloudStudent.updatedAt || 0)
+        };
+      } else {
+        finalStudent.updatedAt = student.updatedAt || Date.now();
+      }
+      
+      await setDoc(docRef, {
+        ...finalStudent,
+        ownerId: auth.currentUser.uid
       });
+      return finalStudent;
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
     }
@@ -127,27 +144,95 @@ export const syncService = {
     }
   },
 
-  async saveAssessment(studentId: string, scores: any, narratives: any = null, kartikaScores: any = null, kartikaComments: any = null) {
+  async saveAssessment(
+    studentId: string, 
+    scores: any, 
+    narratives: any = null, 
+    kartikaScores: any = null, 
+    kartikaComments: any = null
+  ): Promise<{ scores: any; narratives: any; kartikaScores: any; kartikaComments: any } | undefined> {
     if (!auth.currentUser) return;
     const path = `assessments/${studentId}`;
     try {
+      const docRef = doc(db, 'assessments', studentId);
+      const docSnap = await getDoc(docRef);
+      
+      let finalScores = scores || {};
+      let finalNarratives = narratives || {};
+      let finalKartikaScores = kartikaScores || {};
+      let finalKartikaComments = kartikaComments || {};
+      
+      if (docSnap.exists()) {
+        const cloudData = docSnap.data();
+        const cloudScores = cloudData.scores || {};
+        const cloudNarratives = cloudData.narratives || {};
+        const cloudKartikaScores = cloudData.kartikaScores || {};
+        const cloudKartikaComments = cloudData.kartikaComments || {};
+        
+        // Deep merge scores: scores format is { [aspectId]: { [indicatorId]: value } }
+        const mergedScores = { ...cloudScores };
+        for (const aspectId of Object.keys(finalScores)) {
+          mergedScores[aspectId] = {
+            ...(mergedScores[aspectId] || {}),
+            ...(finalScores[aspectId] || {})
+          };
+        }
+        finalScores = mergedScores;
+        
+        // Deep merge narratives: format is { [aspectId]: narrative_text }
+        const mergedNarratives = { ...cloudNarratives };
+        for (const aspectId of Object.keys(finalNarratives)) {
+          if (finalNarratives[aspectId]) {
+            mergedNarratives[aspectId] = finalNarratives[aspectId];
+          }
+        }
+        finalNarratives = mergedNarratives;
+
+        // Deep merge kartikaScores
+        const mergedKartikaScores = { ...cloudKartikaScores };
+        for (const aspectId of Object.keys(finalKartikaScores)) {
+          mergedKartikaScores[aspectId] = {
+            ...(mergedKartikaScores[aspectId] || {}),
+            ...(finalKartikaScores[aspectId] || {})
+          };
+        }
+        finalKartikaScores = mergedKartikaScores;
+
+        // Deep merge kartikaComments
+        const mergedKartikaComments = { ...cloudKartikaComments };
+        for (const aspectId of Object.keys(finalKartikaComments)) {
+          if (finalKartikaComments[aspectId]) {
+            mergedKartikaComments[aspectId] = finalKartikaComments[aspectId];
+          }
+        }
+        finalKartikaComments = mergedKartikaComments;
+      }
+      
       const now = Date.now();
       const payload: any = {
         studentId,
-        scores,
+        scores: finalScores,
         ownerId: auth.currentUser.uid,
         updatedAt: now
       };
-      if (narratives) {
-        payload.narratives = narratives;
+      if (Object.keys(finalNarratives).length > 0) {
+        payload.narratives = finalNarratives;
       }
-      if (kartikaScores) {
-        payload.kartikaScores = kartikaScores;
+      if (Object.keys(finalKartikaScores).length > 0) {
+        payload.kartikaScores = finalKartikaScores;
       }
-      if (kartikaComments) {
-        payload.kartikaComments = kartikaComments;
+      if (Object.keys(finalKartikaComments).length > 0) {
+        payload.kartikaComments = finalKartikaComments;
       }
-      await setDoc(doc(db, 'assessments', studentId), payload, { merge: true });
+      
+      await setDoc(docRef, payload, { merge: true });
+      
+      return {
+        scores: finalScores,
+        narratives: finalNarratives,
+        kartikaScores: finalKartikaScores,
+        kartikaComments: finalKartikaComments
+      };
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
     }

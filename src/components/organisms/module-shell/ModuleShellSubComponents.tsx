@@ -2,23 +2,24 @@ import React, { useState, useMemo } from 'react';
 import { ShieldAlert, Lock, Search, ArrowRight } from 'lucide-react';
 import { motion } from 'motion/react';
 import { AppModule } from '../../../types';
+import { EmptyState } from '../../atoms/EmptyState';
 
 export const UnauthorizedMessage = ({ userRole, moduleName }: { userRole: string | null; moduleName: string }) => (
-    <div className="flex-1 flex flex-col items-center justify-center p-12 bg-slate-900 relative overflow-hidden group">
-        <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#4f4f4f_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+    <div className="flex-1 flex flex-col items-center justify-center p-12 bg-slate-50 relative overflow-hidden group">
+        <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#000_1px,transparent_1px),linear-gradient(to_bottom,#000_1px,transparent_1px)] bg-[size:40px_40px]" />
         <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative z-10 flex flex-col items-center">
-            <div className="w-20 h-20 bg-rose-600 rounded-[2rem] flex items-center justify-center text-white shadow-2xl shadow-rose-900/50 mb-8 transform group-hover:rotate-12 transition-transform duration-500">
+            <div className="w-20 h-20 bg-rose-600 rounded-[2rem] flex items-center justify-center text-white shadow-lg shadow-rose-200 mb-8 transform group-hover:rotate-12 transition-transform duration-500">
                 <Lock size={32} />
             </div>
-            <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">Access Restricted</h3>
-            <p className="text-[10px] text-rose-400 font-black uppercase tracking-[0.3em] mb-8">Unauthorized Clearance Level</p>
-            <div className="max-w-xs text-center p-6 bg-white/5 border border-white/10 rounded-3xl backdrop-blur-xl">
-                <p className="text-xs font-medium text-slate-400 leading-relaxed mb-6">
-                    Your current role <span className="text-white font-black">[{userRole}]</span> does not have the necessary permissions to access the <span className="text-indigo-400 font-black">{moduleName}</span> suite.
+            <h3 className="text-2xl font-black text-rose-950 mb-2 uppercase tracking-tighter">Akses Terbatas</h3>
+            <p className="text-[10px] text-rose-600 font-black uppercase tracking-[0.3em] mb-8">Unauthorized Clearance Level</p>
+            <div className="max-w-xs text-center p-6 bg-white border border-slate-150 rounded-3xl shadow-sm">
+                <p className="text-xs font-semibold text-slate-600 leading-relaxed mb-6">
+                    Akun Anda dengan peran <span className="text-rose-650 font-black">[{userRole}]</span> tidak memiliki wewenang untuk membuka modul <span className="text-indigo-600 font-black">{moduleName}</span>.
                 </p>
-                <div className="flex items-center justify-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/5">
+                <div className="flex items-center justify-center gap-2 px-4 py-2 bg-rose-50/50 rounded-full border border-rose-100">
                     <ShieldAlert size={12} className="text-rose-500" />
-                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Protocol Deviation 403</span>
+                    <span className="text-[8px] font-black text-rose-700 uppercase tracking-widest">Protocol Deviation 403</span>
                 </div>
             </div>
         </motion.div>
@@ -63,10 +64,14 @@ export const StudentSelector = ({ students, activeModule, moduleProps }: { stude
                 </div>
                 <div className="flex flex-col gap-2 max-h-[450px] overflow-y-auto pr-1">
                     {filteredStudents.length === 0 ? (
-                        <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center">
-                            <p className="text-xs text-slate-500 font-bold uppercase">Anak tidak ditemukan</p>
-                            <p className="text-[10px] text-slate-400 mt-1">Coba ketik kata kunci pencarian yang lain.</p>
-                        </div>
+                        <EmptyState
+                            icon={Search}
+                            title="Anak Tidak Ditemukan"
+                            description="Kata kunci pencarian Anda tidak cocok dengan nama atau data NISN anak didik manapun."
+                            illustrationType="search"
+                            size="compact"
+                            className="bg-white border border-slate-200 rounded-2xl p-6"
+                        />
                     ) : (
                         filteredStudents.map((s: any) => {
                             const progressVal = moduleProps.getStudentProgress ? moduleProps.getStudentProgress(s.id) : 0;

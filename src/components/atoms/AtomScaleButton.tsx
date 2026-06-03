@@ -37,10 +37,10 @@ export const AtomScaleButton: React.FC<AtomScaleButtonProps> = ({ label, active,
       }}
       title={title}
       className={cn(
-        "w-full min-h-[42px] px-2 rounded-xl text-[14px] font-black transition-all border flex items-center justify-center text-center cursor-pointer leading-tight uppercase select-none outline-none",
+        "w-full min-h-[30px] px-1 rounded-lg text-[11px] font-black transition-all border flex items-center justify-center text-center cursor-pointer leading-tight uppercase select-none outline-none",
         active 
-          ? (customColor ? "text-white border-transparent shadow-sm ring-2 ring-black/10" : activeColors[variant]) 
-          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-[#3e6aa6] hover:text-[#2c4e7d] hover:border-slate-350 hover:bg-slate-50 dark:text-[#a5c3ed] dark:hover:text-white dark:hover:bg-slate-800/60 dark:hover:border-slate-700 font-bold"
+          ? (customColor ? "border-transparent shadow-sm ring-1 ring-black/10 font-black text-slate-950" : activeColors[variant]) 
+          : "bg-white border-slate-300 text-[#3e6aa6] hover:text-[#2c4e7d] hover:border-slate-400 hover:bg-slate-50 font-bold"
       )}
       style={active && customColor ? { backgroundColor: customColor, borderColor: customColor } : undefined}
     >

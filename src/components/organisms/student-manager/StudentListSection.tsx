@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Search, Edit2, Trash2, Users } from 'lucide-react';
 import { MoleculeStudentCard } from '../../molecules/Molecules';
 import { AtomText } from '../../atoms/CommonAtoms';
+import { EmptyState } from '../../atoms/EmptyState';
 import { Student } from '../../../types';
 import { usePermissions } from '../../../context/PermissionContext';
 import { cn } from '../../../lib/utils';
@@ -41,7 +42,7 @@ export const StudentListSection: React.FC<StudentListSectionProps> = ({
 
     return (
         <div className="flex-1 flex flex-col overflow-hidden p-3">
-            <div className="text-[10px] font-black text-black uppercase tracking-widest mb-2 px-1">Daftar Induk</div>
+            <div className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-2 px-1">Daftar Induk</div>
             
             {isReadOnly && (
                 <div className="mx-1 px-3 py-2 mb-2 bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-bold rounded-xl flex items-center gap-1.5 leading-relaxed">
@@ -53,7 +54,12 @@ export const StudentListSection: React.FC<StudentListSectionProps> = ({
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-1 scrollbar-none px-1 shrink-0">
                     <button 
                         onClick={() => setRombelFilter('ALL')}
-                        className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-tight whitespace-nowrap transition-all border ${rombelFilter === 'ALL' ? 'bg-indigo-600 border-indigo-700 text-white shadow-md' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                        className={cn(
+                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border shrink-0 outline-none cursor-pointer",
+                            rombelFilter === 'ALL' 
+                                ? 'bg-indigo-600 border-indigo-700 text-white shadow-sm' 
+                                : 'bg-white border-slate-200 text-slate-600 hover:border-slate-350 hover:bg-slate-50'
+                        )}
                     >
                         Semua Kelas
                     </button>
@@ -61,7 +67,12 @@ export const StudentListSection: React.FC<StudentListSectionProps> = ({
                         <button 
                             key={r}
                             onClick={() => setRombelFilter(r)}
-                            className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-tight whitespace-nowrap transition-all border ${rombelFilter === r ? 'bg-indigo-600 border-indigo-700 text-white shadow-md' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                            className={cn(
+                                "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border shrink-0 outline-none cursor-pointer",
+                                rombelFilter === r 
+                                    ? 'bg-indigo-600 border-indigo-700 text-white shadow-sm' 
+                                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-350 hover:bg-slate-50'
+                            )}
                         >
                             Kelas {r}
                         </button>
@@ -75,7 +86,7 @@ export const StudentListSection: React.FC<StudentListSectionProps> = ({
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Cari Entri..."
-                    className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-[11px] font-black text-black placeholder:text-slate-300 focus:outline-none focus:border-black transition-all"
+                    className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-[11px] font-black text-slate-800 placeholder:text-slate-300 focus:outline-none focus:border-indigo-600 transition-all"
                 />
             </div>
 
@@ -97,12 +108,24 @@ export const StudentListSection: React.FC<StudentListSectionProps> = ({
                                         />
                                     </div>
                                     {!isReadOnly && (
-                                        <div className="w-[100px] flex-shrink-0 flex items-center justify-center bg-slate-100">
+                                        <div className="w-[110px] flex-shrink-0 flex items-stretch bg-slate-50 border-l border-slate-200">
                                             {canEditStudent && (
-                                                <button onClick={(e) => onEditStudent(student, e)} className="p-2 text-indigo-600 hover:text-indigo-800"><Edit2 size={16} /></button>
+                                                <button 
+                                                    onClick={(e) => onEditStudent(student, e)} 
+                                                    className="flex-1 flex items-center justify-center text-slate-700 hover:text-slate-900 hover:bg-slate-105 transition-colors cursor-pointer outline-none min-h-[44px]"
+                                                    title="Ubah data"
+                                                >
+                                                    <Edit2 size={15} />
+                                                </button>
                                             )}
                                             {canDeleteStudent && (
-                                                <button onClick={(e) => { e.stopPropagation(); onDeleteRequest(student); }} className="p-2 text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); onDeleteRequest(student); }} 
+                                                    className="flex-1 flex items-center justify-center text-rose-600 hover:text-rose-800 hover:bg-rose-50 transition-colors cursor-pointer outline-none min-h-[44px]"
+                                                    title="Hapus data"
+                                                >
+                                                    <Trash2 size={15} />
+                                                </button>
                                             )}
                                         </div>
                                     )}
@@ -112,10 +135,14 @@ export const StudentListSection: React.FC<StudentListSectionProps> = ({
                     ))}
                 </AnimatePresence>
                 {filteredStudents.length === 0 && (
-                    <div className="text-center py-8 opacity-20">
-                        <Users className="mx-auto w-4 h-4 mb-1" />
-                        <span className="text-[8px] font-black uppercase tracking-tight">Daftar Kosong</span>
-                    </div>
+                    <EmptyState
+                        icon={Users}
+                        title="Daftar murid kosong"
+                        description={search ? "Tidak ada murid yang sesuai dengan kata kunci pencarian Anda." : "Belum ada murid yang terdaftar dalam rombel ini."}
+                        illustrationType="users"
+                        size="compact"
+                        className="py-12"
+                    />
                 )}
             </div>
         </div>

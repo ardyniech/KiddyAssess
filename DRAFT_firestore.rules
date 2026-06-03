@@ -16,7 +16,7 @@ service cloud.firestore {
     }
 
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
     function incoming() {
@@ -28,76 +28,45 @@ service cloud.firestore {
     }
 
     // --- Entity Validations ---
-
     function isValidStudent(data) {
-      return data.keys().hasAll(['id', 'name', 'class', 'semester', 'ownerId', 'updatedAt'])
+      return data.keys().hasAll(['id', 'name', 'kelompok', 'semester', 'ownerId', 'updatedAt'])
         && data.id is string && data.id.size() <= 128
         && data.name is string && data.name.size() > 0 && data.name.size() <= 200
-        && data.class is string && data.class.size() <= 100
+        && data.kelompok is string && data.kelompok.size() <= 100
         && data.semester is string && data.semester.size() <= 50
-        && data.ownerId == request.auth.uid
-        && data.updatedAt == request.time;
+        && (data.updatedAt is number || data.updatedAt == request.time);
     }
 
     function isValidAssessment(data) {
       return data.keys().hasAll(['studentId', 'scores', 'ownerId', 'updatedAt'])
         && data.studentId is string && data.studentId.size() <= 128
         && data.scores is map
-        && data.ownerId == request.auth.uid
-        && data.updatedAt == request.time;
-    }
-
-    function isValidSettings(data) {
-      return data.keys().hasAll(['ownerId', 'updatedAt'])
-        && data.ownerId == request.auth.uid
-        && data.updatedAt == request.time
-        && (data.get('name', '') is string && data.get('name', '').size() <= 200)
-        && (data.get('phone', '') is string && data.get('phone', '').size() <= 20);
-    }
-
-    function isValidPhoto(data) {
-      return data.keys().hasAll(['studentId', 'indicatorId', 'url', 'ownerId'])
-        && data.studentId is string && data.studentId.size() <= 128
-        && data.url is string && data.url.size() <= 2048
-        && data.ownerId == request.auth.uid;
+        && (data.updatedAt is number || data.updatedAt == request.time);
     }
 
     // --- Collections ---
-
     match /students/{studentId} {
-      allow get: if isOwner(existing());
-      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming())
-                    && incoming().id == studentId;
-      allow update: if isOwner(existing()) && isValidStudent(incoming())
-                    && incoming().ownerId == existing().ownerId;
-      allow delete: if isOwner(existing());
+      allow get, list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(studentId) && isValidStudent(incoming()) && incoming().ownerId == request.auth.uid;
+      allow update: if isSignedIn() && isValidStudent(incoming()) && incoming().ownerId == request.auth.uid && resource.data.ownerId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
 
     match /assessments/{studentId} {
-      allow get: if isOwner(existing());
-      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(studentId) && isValidAssessment(incoming())
-                    && incoming().studentId == studentId;
-      allow update: if isOwner(existing()) && isValidAssessment(incoming())
-                    && incoming().ownerId == existing().ownerId;
-      allow delete: if isOwner(existing());
+      allow get, list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(studentId) && isValidAssessment(incoming()) && incoming().ownerId == request.auth.uid;
+      allow update: if isSignedIn() && isValidAssessment(incoming()) && incoming().ownerId == request.auth.uid && resource.data.ownerId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
 
     match /settings/{userId} {
-      allow get: if isOwner(existing());
-      allow create: if isSignedIn() && userId == request.auth.uid && isValidSettings(incoming());
-      allow update: if isOwner(existing()) && userId == request.auth.uid && isValidSettings(incoming())
-                    && incoming().ownerId == existing().ownerId;
+      allow get, update: if isSignedIn() && userId == request.auth.uid;
+      allow create: if isSignedIn() && userId == request.auth.uid;
     }
 
-    match /photos/{photoId} {
-      allow get: if isOwner(existing());
-      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(photoId) && isValidPhoto(incoming());
-      allow update: if isOwner(existing()) && isValidPhoto(incoming())
-                    && incoming().ownerId == existing().ownerId;
-      allow delete: if isOwner(existing());
+    match /users/{userId} {
+      allow get: if isSignedIn() && userId == request.auth.uid;
+      allow write: if isSignedIn() && userId == request.auth.uid;
     }
   }
 }

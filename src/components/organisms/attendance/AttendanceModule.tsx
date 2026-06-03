@@ -15,6 +15,7 @@ import {
 import { Student } from '../../../types';
 import { cn } from '../../../lib/utils';
 import { Card, Badge, Button } from '../../atoms/UIPrimitives';
+import { EmptyState } from '../../atoms/EmptyState';
 
 interface AttendanceModuleProps {
     students: Student[];
@@ -163,7 +164,7 @@ export const AttendanceModule = ({ students = [], onEditStudent }: AttendanceMod
                             onClick={() => setFilterClass('all')}
                             className={cn(
                                 "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-sm cursor-pointer whitespace-nowrap",
-                                filterClass === 'all' ? "bg-black text-white" : "bg-white text-slate-500 border border-slate-250 hover:border-slate-400"
+                                filterClass === 'all' ? "bg-indigo-600 border border-indigo-700 text-white" : "bg-white text-slate-600 border border-slate-200 hover:border-slate-350"
                             )}
                         >
                             Semua Kelompok
@@ -174,7 +175,7 @@ export const AttendanceModule = ({ students = [], onEditStudent }: AttendanceMod
                                 onClick={() => setFilterClass(cls)}
                                 className={cn(
                                     "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-sm cursor-pointer whitespace-nowrap",
-                                    filterClass === cls ? "bg-black text-white" : "bg-white text-slate-500 border border-slate-250 hover:border-slate-400"
+                                    filterClass === cls ? "bg-indigo-600 border border-indigo-700 text-white" : "bg-white text-slate-600 border border-slate-200 hover:border-slate-350"
                                 )}
                             >
                                 Kelas {cls}
@@ -265,10 +266,14 @@ export const AttendanceModule = ({ students = [], onEditStudent }: AttendanceMod
                         ))}
 
                         {filteredStudents.length === 0 && (
-                            <div className="py-20 flex flex-col items-center justify-center opacity-30 text-center select-none">
-                                <Users size={48} className="text-slate-300 mb-3" />
-                                <span className="text-sm font-black uppercase tracking-widest text-slate-400">Tidak ada murid terdaftar</span>
-                            </div>
+                            <EmptyState
+                                icon={Users}
+                                title="Tidak Ada Murid Terdaftar"
+                                description="Belum ada data murid terdeteksi untuk rombel yang dipilih. Silakan tambahkan murid terlebih dahulu di modul kesiswaan."
+                                illustrationType="checklist"
+                                size="normal"
+                                className="py-16"
+                            />
                         )}
                     </div>
                 </div>

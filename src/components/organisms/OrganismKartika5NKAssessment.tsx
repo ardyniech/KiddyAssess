@@ -35,22 +35,22 @@ export function OrganismKartika5NKAssessment({
       <div className="max-w-4xl mx-auto px-2 flex-1 w-full">
         <div className="mb-3">
             {/* Aspect Selector within tab */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none">
-                {KARTIKA_5NK_ASPECTS.map((a, idx) => (
-                    <button
-                        key={a.id}
-                        onClick={() => setActiveAspectIndex(idx)}
-                        className={cn(
-                        "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-tight whitespace-nowrap transition-all border flex items-center gap-2",
-                        activeAspectIndex === idx 
-                            ? "bg-rose-600 border-rose-700 text-white shadow-md shadow-rose-600/10" 
-                            : "bg-white border-slate-100 text-slate-400 hover:border-slate-300 dark:bg-slate-900 dark:border-slate-800"
-                        )}
-                    >
-                        {a.name}
-                    </button>
-                ))}
-            </div>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none px-1">
+              {KARTIKA_5NK_ASPECTS.map((a, idx) => (
+                  <button
+                      key={a.id}
+                      onClick={() => setActiveAspectIndex(idx)}
+                      className={cn(
+                          "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border shrink-0 outline-none cursor-pointer flex items-center gap-1.5",
+                          activeAspectIndex === idx 
+                              ? "bg-rose-600 border-rose-700 text-white shadow-sm font-black" 
+                              : "bg-white border-slate-200 text-slate-700 hover:text-rose-600 hover:border-rose-300 hover:bg-slate-50"
+                      )}
+                  >
+                         {a.name}
+                     </button>
+                 ))}
+             </div>
         </div>
 
         {/* Progress Tracker Banner */}
@@ -85,16 +85,15 @@ export function OrganismKartika5NKAssessment({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: index * 0.01 }}
-                  className="group flex flex-col md:flex-row md:items-center gap-2.5 p-2.5 px-3.5 bg-white dark:bg-slate-900 border border-rose-100 dark:border-rose-900/30 rounded-xl shadow-xs transition-all hover:bg-rose-50/50 dark:hover:bg-rose-950/20 hover:border-rose-200 dark:hover:border-rose-800/50 text-left"
+                  className="bento-card group flex flex-col md:flex-row md:items-center gap-2 p-3 transition-all text-left"
                 >
-                  <div className="flex items-start gap-2.5 flex-1 overflow-hidden">
+                  <div className="flex items-start gap-2 flex-1 overflow-hidden">
                     <div 
-                      className="w-5 h-5 rounded-full border border-rose-200 dark:border-rose-800 flex items-center justify-center shrink-0 select-none font-bold"
-                      style={{ backgroundColor: '#fff0f2', fontSize: '10px', color: '#e11d48', borderStyle: 'solid' }}
+                      className="w-6 h-6 rounded-lg bg-rose-50 border border-rose-100/80 flex items-center justify-center shrink-0 select-none font-black text-[10px] text-rose-800 font-mono"
                     >
                       {index + 1}
                     </div>
-                    <span className="text-[14px] font-semibold text-slate-800 dark:text-slate-200 leading-relaxed whitespace-normal pr-2">
+                    <span className="text-[12px] font-bold text-slate-950 leading-tight whitespace-normal pr-2 pt-0.5">
                       {indicator.text}
                     </span>
                   </div>

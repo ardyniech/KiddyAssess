@@ -23,6 +23,7 @@ import { syncService } from '../../lib/firebaseService';
 import { useAuth } from '../../context/AuthContext';
 import { usePermissions } from '../../context/PermissionContext';
 import { CustomConfirmModal } from '../molecules/CustomDialog';
+import { EmptyState } from '../atoms/EmptyState';
 
 export function KanbanModule({ tasks, setTasks }: { tasks: KanbanTask[], setTasks: React.Dispatch<React.SetStateAction<KanbanTask[]>> }) {
   const { user } = useAuth();
@@ -369,7 +370,14 @@ export function KanbanModule({ tasks, setTasks }: { tasks: KanbanTask[], setTask
 
           <div className="flex-1 space-y-2 overflow-y-auto max-h-[480px]">
             {todoTasks.length === 0 ? (
-              <div className="text-center py-8 text-slate-400 text-[11px] font-semibold uppercase">Belum ada tugas</div>
+              <EmptyState
+                icon={ClipboardList}
+                title="Antrean Kosong"
+                description="Belum ada tugas dalam antrean. Tambahkan tugas baru untuk memulai kolaborasi."
+                illustrationType="kanban"
+                size="compact"
+                className="bg-white/60 rounded-xl p-6 border border-dashed border-slate-200"
+              />
             ) : (
               todoTasks.map(t => (
                 <TaskCard key={t.id} task={t} canMove={canMoveTask} onMove={handleMoveTaskStatus} onDelete={handleDeleteTask} />
@@ -392,7 +400,14 @@ export function KanbanModule({ tasks, setTasks }: { tasks: KanbanTask[], setTask
 
           <div className="flex-1 space-y-2 overflow-y-auto max-h-[480px]">
             {inProgressTasks.length === 0 ? (
-              <div className="text-center py-8 text-slate-400 text-[11px] font-semibold uppercase">Tidak ada proses aktif</div>
+              <EmptyState
+                icon={ClipboardList}
+                title="Bebas Proses"
+                description="Semua tugas dalam antrean sedang menunggu atau sudah diselesaikan."
+                illustrationType="none"
+                size="compact"
+                className="bg-white/60 rounded-xl p-6 border border-dashed border-slate-200"
+              />
             ) : (
               inProgressTasks.map(t => (
                 <TaskCard key={t.id} task={t} canMove={canMoveTask} onMove={handleMoveTaskStatus} onDelete={handleDeleteTask} />
@@ -415,7 +430,14 @@ export function KanbanModule({ tasks, setTasks }: { tasks: KanbanTask[], setTask
 
           <div className="flex-1 space-y-2 overflow-y-auto max-h-[480px]">
             {doneTasks.length === 0 ? (
-              <div className="text-center py-8 text-slate-400 text-[11px] font-semibold uppercase">Belum ada tugas selesai</div>
+              <EmptyState
+                icon={CheckCircle2}
+                title="Belum Ada Hasil"
+                description="Selesaikan tugas Anda dan pindahkan ke bagian ini untuk merayakan progres tim."
+                illustrationType="none"
+                size="compact"
+                className="bg-white/60 rounded-xl p-6 border border-dashed border-slate-200"
+              />
             ) : (
               doneTasks.map(t => (
                 <TaskCard key={t.id} task={t} canMove={canMoveTask} onMove={handleMoveTaskStatus} onDelete={handleDeleteTask} />

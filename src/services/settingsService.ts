@@ -50,7 +50,8 @@ export async function saveSchoolProfile(profile: SchoolProfile) {
 
 export async function getSchoolProfile(): Promise<SchoolProfile> {
   const record = await db.settings.get('school_profile');
-  return record?.value || DEFAULT_SCHOOL_PROFILE;
+  const profile = record?.value || DEFAULT_SCHOOL_PROFILE;
+  return { ...profile, enableCloudSync: true };
 }
 
 export async function saveUserSettings(settings: UserSettings) {

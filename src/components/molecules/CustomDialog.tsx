@@ -43,7 +43,7 @@ export function CustomConfirmModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ type: 'spring', duration: 0.3 }}
-          className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl max-w-sm w-full mx-auto select-none"
+          className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl max-w-sm w-full mx-auto select-none max-h-[85vh] overflow-y-auto custom-scrollbar"
         >
           <div className="flex flex-col items-center text-center space-y-4">
             {/* Aspect Icon Badge */}
@@ -150,7 +150,7 @@ export function CustomPromptModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ type: 'spring', duration: 0.3 }}
-          className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl max-w-sm w-full mx-auto"
+          className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl max-w-sm w-full mx-auto max-h-[85vh] overflow-y-auto custom-scrollbar"
         >
           <div className="flex flex-col space-y-4">
             <div className="flex items-center gap-3">

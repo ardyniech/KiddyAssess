@@ -17,7 +17,7 @@ export function NarrativeCard({ title, content, advice, isGenerating, onGenerate
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden group">
             <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between print:border-none print:bg-transparent">
                 <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 bg-black rounded-lg flex items-center justify-center text-white print:hidden">
+                    <div className="w-6 h-6 bg-indigo-600 rounded-lg flex items-center justify-center text-white print:hidden">
                         <FileText size={12} />
                     </div>
                     <span className="text-[10px] sm:text-xs font-black uppercase tracking-tight text-black">{title}</span>
@@ -25,7 +25,7 @@ export function NarrativeCard({ title, content, advice, isGenerating, onGenerate
                 <button 
                     onClick={onGenerate}
                     disabled={isGenerating}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-black hover:border-black transition-all disabled:opacity-50 no-print"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 hover:border-indigo-600 transition-all disabled:opacity-50 no-print"
                 >
                     {isGenerating ? <RefreshCw size={10} className="animate-spin" /> : <Sparkles size={10} />}
                     {isGenerating ? "Mengoptimalkan..." : "Tingkatkan dengan AI"}
@@ -75,20 +75,20 @@ export function NarrativeCard({ title, content, advice, isGenerating, onGenerate
                         value={content}
                         onChange={(e) => onUpdate(e.target.value, advice)}
                         placeholder="Klik 'Regenerate AI' atau tulis narasi manual di sini..."
-                        className="w-full min-h-[120px] px-4 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-xs sm:text-sm font-medium text-black leading-relaxed focus:bg-white focus:border-black outline-none transition-all resize-none print:hidden"
+                        className="w-full min-h-[120px] px-4 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-xs sm:text-sm font-medium text-black leading-relaxed focus:bg-white focus:border-indigo-600 outline-none transition-all resize-none print:hidden"
                     />
                 </div>
                 
                 <div className="space-y-2">
                     <label className="text-[9px] font-black uppercase text-slate-400 print:text-black print:text-xs text-left w-full block">Saran Pembimbing</label>
                     <div className="hidden print:block text-xs sm:text-sm font-bold text-black pb-2">
-                        {advice}
+                         {advice}
                     </div>
                     <input 
                         value={advice}
                         onChange={(e) => onUpdate(content, e.target.value)}
                         placeholder="Saran untuk orang tua..."
-                        className="w-full px-4 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-xs sm:text-sm font-bold text-black focus:bg-white focus:border-black outline-none transition-all print:hidden"
+                        className="w-full px-4 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-xs sm:text-sm font-bold text-black focus:bg-white focus:border-indigo-600 outline-none transition-all print:hidden"
                     />
                 </div>
             </div>

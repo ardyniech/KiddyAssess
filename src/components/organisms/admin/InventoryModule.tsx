@@ -115,9 +115,9 @@ export const InventoryModule = () => {
                             />
                         </div>
                         <div className="flex items-center gap-2 bg-white/50 p-1.5 rounded-2xl border border-slate-100 w-full md:w-auto">
-                            <button className="px-4 py-2.5 bg-black text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-black/10 cursor-pointer">Semua</button>
-                            <button className="px-4 py-2.5 text-slate-400 hover:text-black rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer">Habis Pakai</button>
-                            <button className="px-4 py-2.5 text-slate-400 hover:text-black rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer">Aset Tetap</button>
+                            <button className="px-4 py-2.5 bg-indigo-600 text-white border border-indigo-700 rounded-xl text-[9px] font-black uppercase tracking-widest shadow cursor-pointer">Semua</button>
+                            <button className="px-4 py-2.5 text-slate-500 hover:text-indigo-600 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer">Habis Pakai</button>
+                            <button className="px-4 py-2.5 text-slate-500 hover:text-indigo-600 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer">Aset Tetap</button>
                         </div>
                     </div>
 
@@ -130,9 +130,9 @@ export const InventoryModule = () => {
                                 transition={{ delay: idx * 0.05 }}
                                 className="group"
                             >
-                                <Card padding={false} className="p-4 md:p-6 flex flex-col sm:flex-row sm:items-center gap-6 hover:border-black transition-all">
+                                <Card padding={false} className="p-4 md:p-6 flex flex-col sm:flex-row sm:items-center gap-6 hover:border-indigo-600 transition-all">
                                     <div className="flex items-center gap-5 flex-1">
-                                        <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-black group-hover:text-white transition-all shrink-0 shadow-inner">
+                                        <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0 shadow-inner">
                                             <Tag size={20} />
                                         </div>
                                         <div className="flex-1 min-w-0">

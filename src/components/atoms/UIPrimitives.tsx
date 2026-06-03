@@ -25,7 +25,7 @@ export const Button = ({
     const variants = {
         primary: "bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200",
         secondary: "bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-200",
-        dark: "bg-black text-white hover:bg-slate-800 shadow-lg shadow-black/10",
+        dark: "bg-slate-900 border border-slate-950 text-white hover:bg-slate-800 shadow",
         ghost: "bg-slate-50 text-slate-600 hover:bg-slate-100",
         outline: "bg-white border border-slate-200 text-slate-600 hover:border-slate-300 shadow-sm",
         warning: "bg-amber-600 text-white hover:bg-amber-700 shadow-lg shadow-amber-200",
@@ -115,7 +115,7 @@ export const SectionHeader = ({ title, subtitle, icon: Icon, actions }: { title:
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div className="flex items-center gap-4">
             {Icon && (
-                <div className="w-12 h-12 md:w-14 md:h-14 bg-black rounded-2xl flex items-center justify-center text-white shadow-xl shadow-black/10">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow shadow-indigo-100">
                     <Icon size={24} className="md:w-7 md:h-7" />
                 </div>
             )}

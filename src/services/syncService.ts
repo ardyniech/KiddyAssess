@@ -2,6 +2,7 @@ import { db as localDb } from '../lib/db';
 import { db as firestoreDb, auth } from '../lib/firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { StudentAssessment, SchoolProfile, Student } from '../types';
+import { toast } from 'react-hot-toast';
 
 export const syncToCloud = async (
   students: Student[], 
@@ -21,8 +22,17 @@ export const syncToCloud = async (
       lastSync: new Date().toISOString()
     }, { merge: true });
     console.log("Cloud sync successful");
+    toast.success('Changes saved', {
+        duration: 2000,
+        position: 'bottom-right',
+        style: {
+            background: '#333',
+            color: '#fff',
+        },
+    });
   } catch (error) {
     console.error("Cloud sync failed:", error);
+    toast.error('Failed to sync changes');
   }
 };
 

@@ -49,7 +49,7 @@ export function OrganismReportGenerator({
             <div className="max-w-4xl mx-auto space-y-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
                     <div>
-                        <h1 className="text-xl font-black text-black tracking-tight leading-none mb-1 uppercase">Mesin Rapor AI</h1>
+                        <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none mb-1 uppercase">Mesin Rapor AI</h1>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Verifikasi & Validasi Narasi Rapor untuk {student.name}</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -57,7 +57,7 @@ export function OrganismReportGenerator({
                             onClick={() => setActiveTab('aspects')}
                             className={cn(
                                 "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border cursor-pointer",
-                                activeTab === 'aspects' ? "bg-black text-white border-black" : "bg-white text-slate-400 border-slate-200 hover:text-black hover:border-black"
+                                activeTab === 'aspects' ? "bg-indigo-600 text-white border-indigo-700 shadow-sm" : "bg-white text-slate-500 border-slate-200 hover:text-indigo-600 hover:border-indigo-350"
                             )}
                         >
                             Aspek Utama
@@ -66,7 +66,7 @@ export function OrganismReportGenerator({
                             onClick={() => setActiveTab('kokurikulum')}
                             className={cn(
                                 "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border cursor-pointer",
-                                activeTab === 'kokurikulum' ? "bg-black text-white border-black" : "bg-white text-slate-400 border-slate-200 hover:text-black hover:border-black"
+                                activeTab === 'kokurikulum' ? "bg-indigo-600 text-white border-indigo-700 shadow-sm" : "bg-white text-slate-500 border-slate-200 hover:text-indigo-600 hover:border-indigo-350"
                             )}
                         >
                             Kokurikulum
@@ -186,7 +186,7 @@ export function OrganismReportGenerator({
                                     value={kartikaComments.catatanOrtu}
                                     onChange={(e) => updateKartikaComment('catatanOrtu', e.target.value)}
                                     placeholder="Input tanggapan/harapan orang tua di rumah..."
-                                    className="w-full px-4 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-xs sm:text-sm font-semibold text-black focus:bg-white focus:border-black outline-none transition-all"
+                                    className="w-full px-4 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-xs sm:text-sm font-semibold text-black focus:bg-white focus:border-indigo-600 outline-none transition-all"
                                 />
                             </div>
                         </motion.div>
@@ -196,7 +196,7 @@ export function OrganismReportGenerator({
                 <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-6 border-t border-slate-200 no-print">
                     <button 
                         onClick={() => setView('assessment')}
-                        className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-black hover:text-black hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 sm:mr-auto w-full sm:w-auto justify-center cursor-pointer"
+                        className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:border-indigo-600 hover:text-indigo-650 hover:bg-slate-50 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 sm:mr-auto w-full sm:w-auto justify-center cursor-pointer"
                     >
                         Kembali
                     </button>

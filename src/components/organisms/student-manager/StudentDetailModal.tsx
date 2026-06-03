@@ -47,7 +47,7 @@ export function StudentDetailModal({ student, progress, onClose, onGoToAssessmen
                     <div>
                         <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase mb-1">{student.name}</h2>
                         <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 bg-black text-white text-[9px] font-black uppercase tracking-widest rounded shadow-sm">KLS {student.kelompok}</span>
+                            <span className="px-2.5 py-1 bg-indigo-50 border border-indigo-150 text-indigo-700 text-[9px] font-black uppercase tracking-wider rounded-lg shadow-sm font-sans">KLS {student.kelompok}</span>
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{student.semester} {student.semesterType}</span>
                         </div>
                     </div>
@@ -122,7 +122,7 @@ export function StudentDetailModal({ student, progress, onClose, onGoToAssessmen
         <div className="p-3 sm:p-4 bg-slate-50 border-t border-slate-100 shrink-0 mt-auto flex">
             <button 
                 onClick={() => onGoToAssessment(student.id)}
-                className="w-full flex justify-between items-center bg-black hover:bg-slate-900 text-white p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all shadow-xl shadow-black/10 group"
+                className="w-full flex justify-between items-center bg-indigo-600 hover:bg-indigo-700 text-white p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all shadow-lg cursor-pointer outline-none group"
             >
                 <div className="flex flex-col text-left">
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70">Aksi Tambahan</span>

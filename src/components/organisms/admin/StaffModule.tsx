@@ -128,7 +128,7 @@ export const StaffModule = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: idx * 0.05 }}
                             >
-                                <Card padding={false} className="p-6 h-full flex flex-col group hover:border-black transition-all">
+                                <Card padding={false} className="p-6 h-full flex flex-col group hover:border-indigo-600 transition-all">
                                     <div className="flex justify-between items-start mb-6">
                                         <Badge variant={member.status === 'Active' ? 'success' : 'warning'} className="px-3 py-1 ring-4 ring-slate-50">
                                             {member.status === 'Active' ? 'Aktif' : member.status === 'On Leave' ? 'Cuti' : 'Nonaktif'}

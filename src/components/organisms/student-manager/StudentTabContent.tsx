@@ -59,8 +59,8 @@ export const StudentTabContent = ({
                 <button 
                     onClick={() => setActiveTab('navigation')}
                     className={cn(
-                        "flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer",
-                        activeTab === 'navigation' ? "bg-black text-white shadow" : "bg-white hover:bg-slate-100 border border-slate-200 text-slate-500"
+                        "flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer border",
+                        activeTab === 'navigation' ? "bg-indigo-600 border-indigo-700 text-white shadow" : "bg-white hover:bg-slate-100 border-slate-200 text-slate-500"
                     )}
                 >
                     <Menu size={12} />
@@ -69,8 +69,8 @@ export const StudentTabContent = ({
                 <button 
                     onClick={() => setActiveTab('students')}
                     className={cn(
-                        "flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer",
-                        activeTab === 'students' ? "bg-black text-white shadow" : "bg-white hover:bg-slate-100 border border-slate-200 text-slate-500"
+                        "flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer border",
+                        activeTab === 'students' ? "bg-indigo-600 border-indigo-700 text-white shadow" : "bg-white hover:bg-slate-100 border-slate-200 text-slate-500"
                     )}
                 >
                     <Users size={12} />
@@ -84,7 +84,7 @@ export const StudentTabContent = ({
                         <StudentManagerNavigation currentView={currentView} setView={setView} onClose={onClose} onOpenSettings={onOpenSettings} />
                         <div className="p-8 flex flex-col items-center justify-center opacity-5 select-none pointer-events-none mt-auto">
                             <div className="text-[32px] font-black italic tracking-tighter leading-none mb-1">KIDDY</div>
-                            <div className="w-16 h-[2px] bg-black mb-2" />
+                            <div className="w-16 h-[2px] bg-indigo-600 mb-2" />
                             <div className="text-[8px] font-bold tracking-[0.5em] uppercase">ASSESS SYSTEM</div>
                         </div>
                     </div>

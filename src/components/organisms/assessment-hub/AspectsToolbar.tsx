@@ -55,10 +55,10 @@ export const AspectsToolbar = ({
                             <button
                                 onClick={() => onAspectChange(idx)}
                                 className={cn(
-                                    "px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-tight whitespace-nowrap transition-all border flex items-center gap-2",
+                                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-2 shrink-0 outline-none cursor-pointer",
                                     activeAspectIndex === idx 
-                                        ? "bg-indigo-600 border-indigo-700 text-white shadow-md shadow-indigo-600/10" 
-                                        : "bg-white border-slate-205 text-slate-700 font-extrabold hover:border-slate-350 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+                                        ? "bg-indigo-600 border-indigo-700 text-white shadow-sm font-black" 
+                                        : "bg-white border-slate-200 text-slate-700 hover:text-indigo-600 hover:border-indigo-300 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
                                 )}
                             >
                                 {aspect.name}
@@ -87,7 +87,7 @@ export const AspectsToolbar = ({
                     {isManagingAspects && (
                         <button 
                             onClick={addAspect}
-                            className="p-1.5 bg-black text-white rounded-xl shadow-md active:scale-95"
+                            className="p-1.5 bg-indigo-600 hover:bg-indigo-700 border border-indigo-700 text-white rounded-xl shadow cursor-pointer active:scale-95 transition-all"
                         >
                             <Plus size={12} />
                         </button>

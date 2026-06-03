@@ -70,7 +70,7 @@ export const CalendarModule = ({ events, setEvents }: any) => {
                     <div className="flex justify-between items-start mb-1 sm:mb-2">
                         <span className={cn(
                             "w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-black transition-all",
-                            isToday ? "bg-black text-white shadow-lg" : 
+                            isToday ? "bg-slate-900 border border-slate-950 text-white shadow" : 
                             isSelected ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-slate-400 group-hover:text-slate-900 group-hover:bg-slate-100"
                         )}>
                             {day}
@@ -232,7 +232,7 @@ export const CalendarModule = ({ events, setEvents }: any) => {
 
                     <div className="p-8 flex-1 overflow-y-auto custom-scrollbar">
                         <div className="flex items-center gap-3 mb-8">
-                            <div className="w-8 h-8 bg-black rounded-xl flex items-center justify-center text-white">
+                            <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow shadow-indigo-100">
                                 <Bell size={14} />
                             </div>
                             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900">Agenda Mendatang</h3>
@@ -255,62 +255,61 @@ export const CalendarModule = ({ events, setEvents }: any) => {
                 </div>
             </div>
 
-            {/* Mobile Actions Drawer Slide Up Sheet */}
+            {/* Center-Aligned Modal details Dialog */}
             <AnimatePresence>
                 {showMobileDetails && selectedDate && (
-                    <div className="fixed inset-0 z-50 flex items-end justify-center lg:hidden">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 lg:hidden">
                         <motion.div 
                             initial={{ opacity: 0 }} 
                             animate={{ opacity: 1 }} 
                             exit={{ opacity: 0 }} 
                             onClick={() => setShowMobileDetails(false)}
-                            className="absolute inset-0 bg-black/40 backdrop-blur-sm shadow-xl"
+                            className="absolute inset-0 bg-black/50 backdrop-blur-xs shadow-xl"
                         />
                         <motion.div 
-                            initial={{ y: "100%" }} 
-                            animate={{ y: 0 }} 
-                            exit={{ y: "100%" }}
-                            transition={{ type: "spring", damping: 25, stiffness: 220 }}
-                            className="relative w-full bg-white rounded-t-[2.5rem] p-6 max-h-[70vh] overflow-y-auto flex flex-col shadow-2xl z-10"
+                            initial={{ opacity: 0, scale: 0.95, y: 15 }} 
+                            animate={{ opacity: 1, scale: 1, y: 0 }} 
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            transition={{ type: "spring", duration: 0.3 }}
+                            className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 max-h-[80vh] flex flex-col shadow-2xl z-10 border border-slate-100"
                         >
-                            <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6 shrink-0" />
-                            <div className="flex justify-between items-start mb-6 shrink-0">
+                            <div className="flex justify-between items-start mb-5 shrink-0">
                                 <div>
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-indigo-500">{selectedDate}</span>
-                                    <h3 className="text-lg font-black text-slate-900 tracking-tight leading-none uppercase mt-1">Agenda Hari Ini</h3>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 font-mono">{selectedDate}</span>
+                                    <h3 className="text-base font-black text-slate-900 tracking-tight leading-none uppercase mt-1">Agenda Hari Ini</h3>
                                 </div>
                                 <button 
                                     onClick={() => setShowMobileDetails(false)}
-                                    className="p-2 bg-slate-50 border border-slate-100 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                                    className="p-2.5 bg-slate-50 border border-slate-150 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
                                 >
-                                    <X size={14} />
+                                    <X size={15} />
                                 </button>
                             </div>
 
-                            <div className="space-y-4 overflow-y-auto pb-6">
-                                {events.filter(e => e.date === selectedDate).length > 0 ? (
-                                    events.filter(e => e.date === selectedDate).map(event => (
-                                        <Card key={event.id} className="p-4 border border-slate-100 rounded-2xl bg-slate-50/50">
+                            <div className="flex-1 overflow-y-auto space-y-4 pr-1 pb-2 custom-scrollbar">
+                                {events.filter((e: any) => e.date === selectedDate).length > 0 ? (
+                                    events.filter((e: any) => e.date === selectedDate).map((event: any) => (
+                                        <Card key={event.id} className="p-4 border border-slate-150 rounded-2xl bg-slate-50/50">
                                             <Badge variant={event.category === 'Academic' ? 'success' : event.category === 'Holiday' ? 'error' : 'indigo'} className="mb-3">
                                                 {event.category}
                                             </Badge>
-                                            <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-3 leading-none">{event.title}</h4>
-                                            <p className="text-xs text-slate-500 font-medium leading-relaxed mb-4">{event.description}</p>
-                                            <div className="space-y-2.5 pt-4 border-t border-slate-100">
+                                            <h4 className="text-xs font-black text-slate-900 uppercase tracking-tight mb-2.5 leading-snug">{event.title}</h4>
+                                            <p className="text-[11px] text-slate-500 font-semibold leading-relaxed mb-4">{event.description}</p>
+                                            <div className="space-y-2 pt-3.5 border-t border-slate-100">
                                                 <div className="flex items-center gap-3 text-slate-400">
-                                                    <Clock size={12} className="text-indigo-500" />
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider">{event.startTime} - {event.endTime}</span>
+                                                    <Clock size={13} className="text-indigo-500 shrink-0" />
+                                                    <span className="text-[9px] font-bold uppercase tracking-wider font-mono">{event.startTime} - {event.endTime}</span>
                                                 </div>
                                                 <div className="flex items-center gap-3 text-slate-400">
-                                                    <MapPin size={12} className="text-emerald-500" />
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider truncate">{event.location}</span>
+                                                    <MapPin size={13} className="text-emerald-500 shrink-0" />
+                                                    <span className="text-[9px] font-bold uppercase tracking-wider font-mono truncate">{event.location}</span>
                                                 </div>
                                             </div>
                                         </Card>
                                     ))
                                 ) : (
-                                    <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-3xl">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Tidak Ada Agenda</span>
+                                    <div className="text-center py-10 border-2 border-dashed border-slate-150 rounded-2xl bg-slate-50/20">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Tidak Ada Agenda Terjadwal</span>
                                     </div>
                                 )}
                             </div>

@@ -1,9 +1,9 @@
 import React from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   School,
   Pencil, Wand2, Users, BookOpen, Wallet, Package, 
-  Calendar, ShieldCheck
+  Calendar, ShieldCheck, WifiOff
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { cn } from "../../lib/utils";
@@ -32,6 +32,21 @@ export function OrganismHeader({
 }: any) {
   const { user } = useAuth();
   const { userRole } = usePermissions();
+
+  const [isOnline, setIsOnline] = React.useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  React.useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
   
   const ModuleIcon = activeModule?.icon || School;
   const isStudentContext = activeModule?.requiresStudent && studentName;
@@ -126,8 +141,22 @@ export function OrganismHeader({
         })}
       </div>
 
-      <div className="flex items-center gap-1 ml-auto">
-        <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5 ml-auto">
+        <div className="flex items-center gap-1.5 md:gap-2">
+            <AnimatePresence>
+              {!isOnline && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, x: 10 }}
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, x: 10 }}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-rose-50 border border-rose-100 rounded-2xl text-[10px] font-black text-rose-600 uppercase tracking-widest shadow-sm animate-pulse"
+                  title="Koneksi terputus. Mode luring aktif!"
+                >
+                  <WifiOff size={13} className="text-rose-500 shrink-0" />
+                  <span className="hidden sm:inline">Offline</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
             <CloudSyncIndicator 
               isSyncing={isSyncing}
               syncProgress={syncProgress}
