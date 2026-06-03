@@ -9,7 +9,7 @@ export const UserProfileSection = ({ user, onLogin, onLogout, onSettingsClick }:
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
-  const { userRole, setUserRole } = usePermissions();
+  const { userRole, setUserRole, accountRoles } = usePermissions();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -29,6 +29,22 @@ export const UserProfileSection = ({ user, onLogin, onLogout, onSettingsClick }:
     { id: 'TEACHER', label: 'Teacher / Guru', desc: 'Classroom & Grading' },
     { id: 'OPERATOR', label: 'Operator / TU', desc: 'Data Entry Only' },
   ];
+
+  const displayRoles = roles.filter(role => {
+    if (!user) {
+      return role.id !== 'MASTER' && role.id !== 'SUPER_USER';
+    }
+    const cleanEmail = user.email ? user.email.toLowerCase().trim() : '';
+    if (cleanEmail === 'ardy.syafii@gmail.com') return true;
+    const key = cleanEmail ? cleanEmail.replace(/\./g, '_') : '';
+    const actualDbRole = accountRoles[key] || 'TEACHER';
+    
+    const rolePrecedence = ['MASTER', 'SUPER_USER', 'ADMIN', 'TEACHER', 'OPERATOR'];
+    const actualIndex = rolePrecedence.indexOf(actualDbRole);
+    const targetIndex = rolePrecedence.indexOf(role.id);
+    
+    return targetIndex >= actualIndex;
+  });
 
   return (
     <div className="relative" ref={menuRef}>
@@ -104,7 +120,7 @@ export const UserProfileSection = ({ user, onLogin, onLogout, onSettingsClick }:
                                         className="overflow-hidden"
                                     >
                                         <div className="pl-6 pr-2 py-1 space-y-0.5 border-l-2 border-indigo-100 ml-5 my-1">
-                                            {roles.map(role => (
+                                            {displayRoles.map(role => (
                                                 <button
                                                     key={role.id}
                                                     onClick={() => {

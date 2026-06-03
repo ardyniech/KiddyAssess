@@ -34,8 +34,10 @@ export const StudentListSection: React.FC<StudentListSectionProps> = ({
     onEditStudent, 
     onDeleteRequest 
 }) => {
-    const { userRole } = usePermissions();
-    const isReadOnly = userRole === 'OPERATOR'; // Let everyone else edit besides Operator
+    const { canPerformAction } = usePermissions();
+    const canEditStudent = canPerformAction('edit_student');
+    const canDeleteStudent = canPerformAction('delete_student');
+    const isReadOnly = !canEditStudent; // If they cannot edit, they are read-only
 
     return (
         <div className="flex-1 flex flex-col overflow-hidden p-3">
@@ -96,8 +98,12 @@ export const StudentListSection: React.FC<StudentListSectionProps> = ({
                                     </div>
                                     {!isReadOnly && (
                                         <div className="w-[100px] flex-shrink-0 flex items-center justify-center bg-slate-100">
-                                            <button onClick={(e) => onEditStudent(student, e)} className="p-2 text-indigo-600 hover:text-indigo-800"><Edit2 size={16} /></button>
-                                            <button onClick={(e) => { e.stopPropagation(); onDeleteRequest(student); }} className="p-2 text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+                                            {canEditStudent && (
+                                                <button onClick={(e) => onEditStudent(student, e)} className="p-2 text-indigo-600 hover:text-indigo-800"><Edit2 size={16} /></button>
+                                            )}
+                                            {canDeleteStudent && (
+                                                <button onClick={(e) => { e.stopPropagation(); onDeleteRequest(student); }} className="p-2 text-red-500 hover:text-red-700"><Trash2 size={16} /></button>
+                                            )}
                                         </div>
                                     )}
                                 </motion.div>

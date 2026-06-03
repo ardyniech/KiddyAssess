@@ -37,9 +37,8 @@ export function OrganismStudentManager({
   currentView, 
   initialIsAdding = false 
 }: OrganismStudentManagerProps) {
-  const { userRole } = usePermissions();
-  const isReadOnly = userRole === 'SUPER_USER'; 
-
+  const { userRole, canPerformAction } = usePermissions();
+  const isReadOnly = !canPerformAction('edit_student'); 
   const {
       isAdding, setIsAdding,
       activeTab, setActiveTab,

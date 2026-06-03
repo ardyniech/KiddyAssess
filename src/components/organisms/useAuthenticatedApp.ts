@@ -9,7 +9,7 @@ export function useAuthenticatedApp(appData: any, navigation: any, showSplash: a
     const { aspects: curr } = useCurriculum();
     const aspects = curr.length > 0 ? curr : ASPECTS;
     const { students, setStudents, assessments, setAssessments, narratives, setNarratives, events, setEvents, tasks, setTasks, isLoaded, isSyncing, syncStatus, syncErrors, lastSaved, syncProgress, currentSyncItem, triggerSync } = appData;
-    const { userRole } = usePermissions();
+    const { userRole, canPerformAction } = usePermissions();
     const { view, setView, activeStudentId, setActiveStudentId, activeAspectIndex, setActiveAspectIndex, isSidebarOpen, setIsSidebarOpen, isSettingsOpen, setIsSettingsOpen, navigateToStudent, navigateToModule, backToDashboard, backToStudents, onNarrativesChange } = navigation;
     
     const [sidebarAddMode, setSidebarAddMode] = React.useState(false);
@@ -69,6 +69,10 @@ export function useAuthenticatedApp(appData: any, navigation: any, showSplash: a
 
     const handleScoreChange = (indicatorId: string, score: AssessmentScale, aspectId?: string) => {
         if (!activeStudentId || !aspectId) return;
+        if (!canPerformAction('fill_assessment')) {
+            console.warn("Unauthorised action block: fill assessment");
+            return;
+        }
         setAssessments((prev: any) => ({
             ...prev,
             [activeStudentId]: {
@@ -96,13 +100,27 @@ export function useAuthenticatedApp(appData: any, navigation: any, showSplash: a
         onViewStudents: () => navigateToModule("students", false),
         getStudentProgress: getProgress,
         onAddStudent: () => {
+            if (!canPerformAction('add_student')) {
+                console.warn("Unauthorised action block: add student");
+                return;
+            }
             setSidebarAddMode(true);
             setIsSidebarOpen(true);
         },
         onEditStudent: (s: any) => {
+            if (!canPerformAction('edit_student')) {
+                console.warn("Unauthorised action block: edit student");
+                return;
+            }
             setStudents((prev: any) => prev.map((old: any) => old.id === s.id ? s : old));
         },
-        onDeleteStudent: (id: any) => setStudents((prev: any) => prev.filter((s: any) => s.id !== id)),
+        onDeleteStudent: (id: any) => {
+            if (!canPerformAction('delete_student')) {
+                console.warn("Unauthorised action block: delete student");
+                return;
+            }
+            setStudents((prev: any) => prev.filter((s: any) => s.id !== id));
+        },
         setView: (v: string) => {
             const mod = getModuleById(v);
             navigateToModule(v, mod?.requiresStudent);
@@ -114,7 +132,13 @@ export function useAuthenticatedApp(appData: any, navigation: any, showSplash: a
         allScores: assessments[activeStudentId] || {},
         onScoreChange: handleScoreChange,
         savedNarratives: narratives[activeStudentId] || {},
-        onNarrativesChange: (n: any) => setNarratives({...narratives, [activeStudentId]: n}),
+        onNarrativesChange: (n: any) => {
+            if (!canPerformAction('generate_report_narrative')) {
+                console.warn("Unauthorised action block: save narratives");
+                return;
+            }
+            setNarratives({...narratives, [activeStudentId]: n});
+        },
         globalProgress: activeStudentId ? getProgress(activeStudentId) : 0,
         events,
         setEvents,
@@ -127,6 +151,7 @@ export function useAuthenticatedApp(appData: any, navigation: any, showSplash: a
         isLoaded,
         roleSplash,
         userRole,
+        canPerformAction,
         isSidebarOpen,
         setIsSidebarOpen,
         sidebarAddMode,

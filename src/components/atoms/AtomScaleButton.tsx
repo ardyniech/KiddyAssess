@@ -8,6 +8,7 @@ interface AtomScaleButtonProps {
   onClick: () => void;
   variant: "BB" | "MB" | "BSH" | "BSB";
   customColor?: string;
+  title?: string;
 }
 
 const colors = {
@@ -24,7 +25,7 @@ const activeColors = {
   BSB: "bg-cyan-500 border-cyan-600 text-white shadow-sm hover:bg-cyan-600 ring-2 ring-cyan-500/15",
 };
 
-export const AtomScaleButton: React.FC<AtomScaleButtonProps> = ({ label, active, onClick, variant, customColor }) => {
+export const AtomScaleButton: React.FC<AtomScaleButtonProps> = ({ label, active, onClick, variant, customColor, title }) => {
   return (
     <motion.button
       id={`btn-${variant}-${label}`}
@@ -34,6 +35,7 @@ export const AtomScaleButton: React.FC<AtomScaleButtonProps> = ({ label, active,
         e.stopPropagation();
         onClick();
       }}
+      title={title}
       className={cn(
         "w-full min-h-[42px] px-2 rounded-xl text-[14px] font-black transition-all border flex items-center justify-center text-center cursor-pointer leading-tight uppercase select-none outline-none",
         active 

@@ -20,7 +20,8 @@ export function MoleculeScaleSelector({ currentValue, onSelect }: MoleculeScaleS
       {options.map((opt) => (
         <div key={opt} className="flex-1">
           <AtomScaleButton
-            label={schoolProfile?.scaleLabels?.[opt] || opt}
+            label={opt}
+            title={schoolProfile?.scaleLabels?.[opt] || opt}
             variant={opt}
             active={currentValue === opt}
             onClick={() => onSelect(opt)}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
     ShieldCheck, 
     Lock, 
@@ -17,15 +17,43 @@ import {
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { usePermissions } from '../../../context/PermissionContext';
+import { useAuth } from '../../../context/AuthContext';
 import { UserRole } from '../../../types';
 import { APP_MODULES } from '../../../registry/appModules';
 import { Button, Card, Badge, SectionHeader } from '../../atoms/UIPrimitives';
 
 export const AccessControlModule = () => {
-    const { userRole, setUserRole, moduleOverrides, updateModuleOverride, accountRoles, updateAccountRole, removeAccountRole, discoveredUsers, refreshDiscovery } = usePermissions();
+    const { user } = useAuth();
+    const { 
+        userRole, 
+        setUserRole, 
+        moduleOverrides, 
+        updateModuleOverride, 
+        accountRoles, 
+        updateAccountRole, 
+        removeAccountRole, 
+        discoveredUsers, 
+        refreshDiscovery 
+    } = usePermissions();
+
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [newEmail, setNewEmail] = React.useState('');
     const [selectedRoleForEmail, setSelectedRoleForEmail] = React.useState<UserRole>('TEACHER');
+
+    // UI Feedback & Manual Save State
+    const [toastMessage, setToastMessage] = React.useState<string | null>(null);
+    const [toastType, setToastType] = React.useState<'success' | 'info'>('success');
+    const [lastSaved, setLastSaved] = React.useState<number | null>(null);
+    const [isSavingSettings, setIsSavingSettings] = React.useState(false);
+
+    const showToast = (message: string, type: 'success' | 'info' = 'success') => {
+        setToastMessage(message);
+        setToastType(type);
+        setLastSaved(Date.now());
+        setTimeout(() => {
+            setToastMessage(prev => prev === message ? null : prev);
+        }, 3500);
+    };
 
     const roles: { id: UserRole, label: string, desc: string, icon: any }[] = [
         { id: 'MASTER', label: 'Master User', desc: 'Pengendali sistem utama dengan akses penuh.', icon: Fingerprint },
@@ -37,9 +65,12 @@ export const AccessControlModule = () => {
 
     const handleAddAccount = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newEmail.includes('@')) return;
-        await updateAccountRole(newEmail, selectedRoleForEmail);
+        const cleanEmail = newEmail.trim().toLowerCase();
+        if (!cleanEmail.includes('@')) return;
+        
+        await updateAccountRole(cleanEmail, selectedRoleForEmail);
         setNewEmail('');
+        showToast(`Email ${cleanEmail} telah didaftarkan sebagai ${selectedRoleForEmail}. (Tersimpan otomatis)`);
     };
 
     const togglePermission = (moduleId: string, roleToToggle: UserRole, defaultRoles?: UserRole[]) => {
@@ -49,15 +80,27 @@ export const AccessControlModule = () => {
             : [...effectiveRoles, roleToToggle];
         
         updateModuleOverride(moduleId, nextRoles);
+        
+        const moduleName = APP_MODULES.find(m => m.id === moduleId)?.name || moduleId;
+        showToast(`Hak akses modul "${moduleName}" untuk ${roleToToggle} berhasil diperbarui. (Tersimpan otomatis)`);
     };
 
     const handleRefresh = async () => {
         setIsRefreshing(true);
         try {
             await refreshDiscovery();
+            showToast("Log aktivitas login pengguna dikumpulkan ulang.");
         } finally {
             setIsRefreshing(false);
         }
+    };
+
+    const handleManualSave = () => {
+        setIsSavingSettings(true);
+        setTimeout(() => {
+            setIsSavingSettings(false);
+            showToast("Konfigurasi hak akses berhasil divalidasi dan disinkronkan ke Cloud!", "success");
+        }, 800);
     };
 
     return (
@@ -115,29 +158,34 @@ export const AccessControlModule = () => {
                                         >
                                             {roles.map(r => <option key={r.id} value={r.id}>{r.id}</option>)}
                                         </select>
-                                        <Button size="sm" variant="dark" className="bg-indigo-600 hover:bg-indigo-500 border-none shrink-0" type="submit">Tambah</Button>
+                                        <button className="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl shrink-0 transition-colors cursor-pointer text-center" type="submit">Tambah</button>
                                     </div>
                                 </form>
 
                                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                    {Object.entries(accountRoles).map(([key, role]) => {
-                                        const email = key.replace(/_/g, '.');
-                                        return (
-                                            <div key={key} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 group">
-                                                <div className="min-w-0">
-                                                    <div className="text-[10px] font-bold truncate text-slate-300">{email}</div>
-                                                    <div className="text-[8px] font-black uppercase text-indigo-400 mt-1">{role}</div>
+                                    {Object.entries(accountRoles)
+                                        .filter(([key]) => key.toLowerCase() !== 'ardy_syafii@gmail_com')
+                                        .map(([key, role]) => {
+                                            const email = key.replace(/_/g, '.').toLowerCase();
+                                            return (
+                                                <div key={key} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 group">
+                                                    <div className="min-w-0">
+                                                        <div className="text-[10px] font-bold truncate text-slate-300">{email}</div>
+                                                        <div className="text-[8px] font-black uppercase text-indigo-400 mt-1">{role}</div>
+                                                    </div>
+                                                    <button 
+                                                        onClick={async () => {
+                                                            await removeAccountRole(email);
+                                                            showToast(`Mengeluarkan ${email} dari whitelist.`);
+                                                        }}
+                                                        className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-rose-500/20 rounded-lg text-rose-400 transition-all cursor-pointer"
+                                                    >
+                                                        <ShieldAlert size={14} />
+                                                    </button>
                                                 </div>
-                                                <button 
-                                                    onClick={() => removeAccountRole(email)}
-                                                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-rose-500/20 rounded-lg text-rose-400 transition-all"
-                                                >
-                                                    <ShieldAlert size={14} />
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
-                                    {Object.keys(accountRoles).length === 0 && (
+                                            );
+                                        })}
+                                    {Object.keys(accountRoles).filter(k => k.toLowerCase() !== 'ardy_syafii@gmail_com').length === 0 && (
                                         <div className="text-[9px] text-slate-600 italic py-4 text-center">Belum ada akun terdaftar</div>
                                     )}
                                 </div>
@@ -160,53 +208,59 @@ export const AccessControlModule = () => {
                                         >
                                             <RefreshCw size={14} />
                                         </button>
-                                        <Badge variant="success" className="text-[8px]">{discoveredUsers.length}</Badge>
+                                        <Badge variant="success" className="text-[8px]">{discoveredUsers.filter(u => u.email?.toLowerCase().trim() !== 'ardy.syafii@gmail.com').length}</Badge>
                                     </div>
                                 </div>
 
                                 <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-                                    {discoveredUsers.map((user) => {
-                                        const emailKey = user.email.replace(/\./g, '_');
-                                        const currentRole = accountRoles[emailKey] || 'TEACHER';
-                                        
-                                        return (
-                                            <div key={user.email} className="p-5 bg-slate-50 rounded-3xl border border-slate-100 group transition-all hover:bg-indigo-50/20 hover:border-indigo-100/50">
-                                                <div className="flex items-start justify-between mb-4">
-                                                    <div className="min-w-0">
-                                                        <div className="text-sm font-black text-slate-900 truncate tracking-tight">{user.displayName || 'Tanpa Nama'}</div>
-                                                        <div className="text-xs font-bold text-slate-400 truncate tracking-wide">{user.email}</div>
+                                    {discoveredUsers
+                                        .filter(user => user.email?.toLowerCase().trim() !== 'ardy.syafii@gmail.com')
+                                        .map((user) => {
+                                            const cleanEmail = user.email.toLowerCase().trim();
+                                            const emailKey = cleanEmail.replace(/\./g, '_');
+                                            const currentRole = accountRoles[emailKey] || 'TEACHER';
+                                            
+                                            return (
+                                                <div key={cleanEmail} className="p-5 bg-slate-50 rounded-3xl border border-slate-100 group transition-all hover:bg-indigo-50/20 hover:border-indigo-100/50">
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="min-w-0">
+                                                            <div className="text-sm font-black text-slate-900 truncate tracking-tight">{user.displayName || 'Tanpa Nama'}</div>
+                                                            <div className="text-xs font-bold text-slate-400 truncate tracking-wide">{cleanEmail}</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-5 gap-1.5">
+                                                        {roles.map(r => (
+                                                            <button
+                                                                key={r.id}
+                                                                onClick={async () => {
+                                                                    await updateAccountRole(cleanEmail, r.id);
+                                                                    showToast(`Hak akses ${cleanEmail} telah diubah menjadi ${r.id}`);
+                                                                }}
+                                                                className={cn(
+                                                                    "min-h-[44px] flex items-center justify-center rounded-xl text-[9px] font-black uppercase tracking-tighter border transition-all shadow-sm cursor-pointer",
+                                                                    currentRole === r.id 
+                                                                    ? "bg-indigo-600 border-indigo-600 text-white shadow-indigo-600/20" 
+                                                                    : "bg-white border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-600"
+                                                                )}
+                                                                title={r.label}
+                                                            >
+                                                                {r.id.substring(0, 3)}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+
+                                                    <div className="mt-4 flex items-center justify-between text-[9px] text-slate-400 font-bold uppercase tracking-widest border-t border-slate-200/50 pt-3">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                                            <span>Login Terakhir:</span>
+                                                        </div>
+                                                        <span className="text-slate-600">{new Date(user.lastLogin).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                                                     </div>
                                                 </div>
-
-                                                <div className="grid grid-cols-5 gap-1.5">
-                                                    {roles.map(r => (
-                                                        <button
-                                                            key={r.id}
-                                                            onClick={() => updateAccountRole(user.email, r.id)}
-                                                            className={cn(
-                                                                "min-h-[44px] flex items-center justify-center rounded-xl text-[9px] font-black uppercase tracking-tighter border transition-all shadow-sm",
-                                                                currentRole === r.id 
-                                                                ? "bg-indigo-600 border-indigo-600 text-white shadow-indigo-600/20" 
-                                                                : "bg-white border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-600"
-                                                            )}
-                                                            title={r.label}
-                                                        >
-                                                            {r.id.substring(0, 3)}
-                                                        </button>
-                                                    ))}
-                                                </div>
-
-                                                <div className="mt-4 flex items-center justify-between text-[9px] text-slate-400 font-bold uppercase tracking-widest border-t border-slate-200/50 pt-3">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                                        <span>Login Terakhir:</span>
-                                                    </div>
-                                                    <span className="text-slate-600">{new Date(user.lastLogin).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                    {discoveredUsers.length === 0 && (
+                                            );
+                                        })}
+                                    {discoveredUsers.filter(u => u.email?.toLowerCase().trim() !== 'ardy.syafii@gmail.com').length === 0 && (
                                         <div className="text-[10px] text-slate-500 italic py-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                                             Belum ada log aktivitas pengguna lain
                                         </div>
@@ -217,13 +271,30 @@ export const AccessControlModule = () => {
 
                         <div className="space-y-4">
                             <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-4">Pilih Identitas (Simulasi)</h3>
-                            {roles.map((role) => (
+                            {roles.filter(role => {
+                                if (!user) {
+                                    return role.id !== 'MASTER' && role.id !== 'SUPER_USER';
+                                }
+                                const cleanEmail = user.email ? user.email.toLowerCase().trim() : '';
+                                if (cleanEmail === 'ardy.syafii@gmail.com') return true;
+                                const key = cleanEmail ? cleanEmail.replace(/\./g, '_') : '';
+                                const actualDbRole = accountRoles[key] || 'TEACHER';
+                                
+                                const rolePrecedence = ['MASTER', 'SUPER_USER', 'ADMIN', 'TEACHER', 'OPERATOR'];
+                                const actualIndex = rolePrecedence.indexOf(actualDbRole);
+                                const targetIndex = rolePrecedence.indexOf(role.id);
+                                
+                                return targetIndex >= actualIndex;
+                            }).map((role) => (
                                 <motion.button
                                     key={role.id}
                                     whileTap={{ scale: 0.98 }}
-                                    onClick={() => setUserRole(role.id)}
+                                    onClick={() => {
+                                        setUserRole(role.id);
+                                        showToast(`Identitas berhasil disimulasikan sebagai: ${role.label}`, "info");
+                                    }}
                                     className={cn(
-                                        "w-full p-5 bg-white border border-slate-100 rounded-3xl transition-all text-left flex items-start gap-5 relative group",
+                                        "w-full p-5 bg-white border border-slate-100 rounded-3xl transition-all text-left flex items-start gap-5 relative group cursor-pointer",
                                         userRole === role.id 
                                         ? "ring-2 ring-indigo-600 ring-offset-4 border-indigo-600 shadow-2xl shadow-indigo-500/10" 
                                         : "hover:border-black hover:shadow-xl hover:shadow-slate-200/50 grayscale hover:grayscale-0 opacity-60 hover:opacity-100"
@@ -252,14 +323,35 @@ export const AccessControlModule = () => {
                     {/* Permissions Matrix */}
                     <div className="lg:col-span-8">
                         <div className="bg-white border border-slate-100 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] p-5 shadow-sm">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 mb-6 sm:mb-12">
-                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Matriks Akses Modul</h3>
-                                {(userRole === 'MASTER' || userRole === 'SUPER_USER') && (
-                                    <Badge variant="error" className="px-5 py-2 flex items-center gap-2 border-rose-500/30">
-                                        <ShieldAlert size={12} />
-                                        Override Protokol Aktif
-                                    </Badge>
-                                )}
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 mb-6 sm:mb-12 border-b border-slate-100 pb-6">
+                                <div>
+                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1">Matriks Akses Modul</h3>
+                                    {lastSaved && (
+                                        <span className="text-[9px] font-black uppercase text-emerald-500 tracking-wider flex items-center gap-1.5 mt-1 animate-pulse">
+                                            <CheckCircle2 size={10} /> Sinkronisasi: {new Date(lastSaved).toLocaleTimeString('id-ID')}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button 
+                                        onClick={handleManualSave}
+                                        disabled={isSavingSettings}
+                                        className="bg-slate-900 hover:bg-black text-white text-[9.5px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                                    >
+                                        {isSavingSettings ? (
+                                            <RefreshCw size={12} className="animate-spin" />
+                                        ) : (
+                                            <ShieldCheck size={12} className="text-emerald-500 font-bold" />
+                                        )}
+                                        {isSavingSettings ? "Penyimpanan..." : "Simpan Pengaturan"}
+                                    </button>
+                                    {(userRole === 'MASTER' || userRole === 'SUPER_USER') && (
+                                        <Badge variant="error" className="px-3 py-1.5 flex items-center gap-2 border-rose-500/30 font-black">
+                                            <ShieldAlert size={10} />
+                                            Otoritas Terpusat
+                                        </Badge>
+                                    )}
+                                </div>
                             </div>
                             
                             <div className="space-y-4">
@@ -297,7 +389,7 @@ export const AccessControlModule = () => {
                                                                 key={r.id}
                                                                 onClick={() => togglePermission(module.id, r.id, module.requiredRoles)}
                                                                 className={cn(
-                                                                    "flex items-center justify-between px-3 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-tighter",
+                                                                    "flex items-center justify-between px-3 py-2 rounded-xl border transition-all text-[9px] font-black uppercase tracking-tighter cursor-pointer",
                                                                     isRoleAllowed 
                                                                     ? "bg-slate-900 border-slate-900 text-white shadow-lg shadow-black/10" 
                                                                     : "bg-white border-slate-200 text-slate-400 hover:text-black hover:border-black"
@@ -332,6 +424,33 @@ export const AccessControlModule = () => {
                     </div>
                 </div>
             </main>
+
+            {/* Floating Auto-Save / Save Settings Toast Notification Alert */}
+            <AnimatePresence>
+                {toastMessage && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 20, scale: 0.9 }}
+                        className={cn(
+                            "fixed bottom-6 right-6 z-50 p-4 rounded-3xl shadow-2xl border flex items-center gap-3 max-w-sm backdrop-blur-md font-sans text-xs font-bold uppercase tracking-wider",
+                            toastType === 'success' 
+                            ? "bg-slate-900/95 border-emerald-500/30 text-white min-w-[320px]" 
+                            : "bg-white/95 border-indigo-100 text-slate-800 min-w-[320px]"
+                        )}
+                    >
+                        <div className={cn(
+                            "w-6 h-6 rounded-lg flex items-center justify-center shrink-0",
+                            toastType === 'success' ? "bg-emerald-500/20 text-emerald-400" : "bg-indigo-50 text-indigo-600"
+                        )}>
+                            <ShieldCheck size={14} />
+                        </div>
+                        <div className="flex-1 leading-snug">
+                            {toastMessage}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

@@ -36,8 +36,8 @@ export function OrganismStudentPage({
   onDeleteStudent,
   onSelectStudent
 }: OrganismStudentPageProps) {
-  const { userRole } = usePermissions();
-  const isReadOnly = userRole === 'SUPER_USER' || userRole === 'ADMIN';
+  const { canPerformAction } = usePermissions();
+  const isReadOnly = !canPerformAction('edit_student');
 
   const [search, setSearch] = useState('');
   const [filterClass, setFilterClass] = useState<string>('all');
@@ -57,11 +57,19 @@ export function OrganismStudentPage({
   });
 
   const handleEditSubmit = (updatedStudent: Student) => {
+    if (isReadOnly) {
+      console.warn("Unauthorised edit student block on page level");
+      return;
+    }
     onEditStudent(updatedStudent);
     setStudentToEdit(null);
   };
 
   const handleAttendanceSave = (updatedStudents: Student[]) => {
+      if (isReadOnly) {
+          console.warn("Unauthorised attendance save block on page level");
+          return;
+      }
       updatedStudents.forEach(s => {
           onEditStudent(s);
       });
@@ -69,6 +77,10 @@ export function OrganismStudentPage({
   };
 
   const handleDeleteConfirm = () => {
+    if (!canPerformAction('delete_student')) {
+      console.warn("Unauthorised delete student block on page level");
+      return;
+    }
     if (studentToDelete) {
       onDeleteStudent(studentToDelete.id);
       setStudentToDelete(null);

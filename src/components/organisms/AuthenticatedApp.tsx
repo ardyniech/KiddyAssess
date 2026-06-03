@@ -24,6 +24,7 @@ const AuthenticatedAppContent = ({ appData, navigation, showSplash }: any) => {
       isLoaded,
       roleSplash,
       userRole,
+      canPerformAction,
       isSidebarOpen,
       setIsSidebarOpen,
       sidebarAddMode,
@@ -66,14 +67,28 @@ const AuthenticatedAppContent = ({ appData, navigation, showSplash }: any) => {
                 students={students} 
                 getStudentProgress={getProgress} 
                 onAddStudent={s => {
+                  if (!canPerformAction('add_student')) {
+                    console.warn("Unauthorized add student block.");
+                    return;
+                  }
                   setStudents([...students, {...s, id: crypto.randomUUID(), updatedAt: Date.now()}]);
                   setSidebarAddMode(false);
                 }} 
                 onUpdateStudent={s => {
+                  if (!canPerformAction('edit_student')) {
+                    console.warn("Unauthorized edit student block.");
+                    return;
+                  }
                   setStudents((prev: any) => prev.map((old: any) => old.id === s.id ? s : old));
                   setSidebarAddMode(false);
                 }} 
-                onDeleteStudent={id => setStudents((prev: any) => prev.filter((s: any) => s.id !== id))} 
+                onDeleteStudent={id => {
+                  if (!canPerformAction('delete_student')) {
+                    console.warn("Unauthorized delete student block.");
+                    return;
+                  }
+                  setStudents((prev: any) => prev.filter((s: any) => s.id !== id));
+                }} 
                 onSelectStudent={navigateToStudent} 
                 activeStudentId={activeStudentId} 
                 onClose={() => {
