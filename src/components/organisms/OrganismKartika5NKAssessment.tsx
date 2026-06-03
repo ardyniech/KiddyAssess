@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../../lib/utils";
-import { Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 import { MoleculeScaleSelector } from "../molecules/Molecules";
 import { KARTIKA_5NK_ASPECTS } from "./reports/KartikaData";
 import { AssessmentScale, ScoreData } from "../../types";
+import { KartikaProgressTracker } from "./assessment-hub/KartikaProgressTracker";
 
 interface OrganismKartika5NKAssessmentProps {
   studentId: string;
@@ -28,8 +29,6 @@ export function OrganismKartika5NKAssessment({
   // Since scores is flat, we just pass the full object which maps ind.id -> scale
   const totalCount = aspect.indicators.length;
   const ratedCount = aspect.indicators.filter(ind => scores[ind.id]).length;
-  const aspectPercent = totalCount > 0 ? Math.round((ratedCount / totalCount) * 100) : 0;
-  const aspectPercentClamped = Math.min(100, Math.max(0, aspectPercent));
 
   return (
     <div className="flex-1 flex flex-col pt-0 relative pb-6">
@@ -55,25 +54,11 @@ export function OrganismKartika5NKAssessment({
         </div>
 
         {/* Progress Tracker Banner */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800/80 rounded-xl p-2.5 px-4 mb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm text-left">
-          <div>
-            <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">PROGRESS 5NK NASIONAL</span>
-            <span className="text-xs font-black text-rose-600 dark:text-rose-400 leading-tight">
-              {aspect.name}
-            </span>
-          </div>
-          <div className="flex items-center gap-3.5 flex-1 sm:max-w-xs justify-end">
-            <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-              <div 
-                className="bg-rose-600 h-full transition-all duration-300" 
-                style={{ width: `${aspectPercentClamped}%` }}
-              />
-            </div>
-            <span className="text-xs font-black text-rose-600 dark:text-rose-400 shrink-0 tabular-nums">
-              {ratedCount}/{totalCount}
-            </span>
-          </div>
-        </div>
+        <KartikaProgressTracker 
+            aspectName={aspect.name} 
+            ratedCount={ratedCount} 
+            totalCount={totalCount} 
+        />
 
         <div className="flex items-center justify-between mb-2 px-1">
           <div className="flex items-center gap-3">
