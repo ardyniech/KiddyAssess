@@ -186,4 +186,17 @@ export interface KanbanTask {
   updatedAt: number;
 }
 
+export interface StaffMember {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: UserRole;
+  subject?: string;
+  classroom?: string;
+  status: 'active' | 'inactive';
+  joinedAt?: number;
+  updatedAt?: number;
+}
+
 

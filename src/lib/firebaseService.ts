@@ -12,7 +12,7 @@ import {
   DocumentData
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
-import { Student, StudentAssessment, SchoolProfile, AssessmentScale, KanbanTask, UserRole } from '../types';
+import { Student, StudentAssessment, SchoolProfile, AssessmentScale, KanbanTask, UserRole, StaffMember } from '../types';
 
 export enum OperationType {
   CREATE = 'create',
@@ -67,6 +67,7 @@ export const syncService = {
   async saveStudent(student: Student): Promise<Student | undefined> {
     if (!auth.currentUser) return;
     const path = `students/${student.id}`;
+    console.log("DEBUG: Saving student to:", path, "Data:", student, "UID:", auth.currentUser.uid);
     try {
       const docRef = doc(db, 'students', student.id);
       const docSnap = await getDoc(docRef);
@@ -301,6 +302,48 @@ export const syncService = {
     }
   },
 
+  // --- Staff ---
+  async getStaff(): Promise<StaffMember[]> {
+    if (!auth.currentUser) return [];
+    const path = 'staff';
+    try {
+      const q = collection(db, path);
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(d => ({ ...d.data(), id: d.id } as StaffMember));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, path);
+      return [];
+    }
+  },
+
+  async saveStaff(staffMember: StaffMember) {
+    if (!auth.currentUser) return;
+    const path = `staff/${staffMember.id}`;
+    try {
+      await setDoc(doc(db, 'staff', staffMember.id), {
+        ...staffMember,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      
+      // Proactively sync role if this staff member is a user
+      if (staffMember.email) {
+        await this.saveAccountRole(staffMember.email, staffMember.role as UserRole);
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+
+  async deleteStaff(staffId: string) {
+    if (!auth.currentUser) return;
+    const path = `staff/${staffId}`;
+    try {
+      await deleteDoc(doc(db, 'staff', staffId));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
+    }
+  },
+
   // --- User Discovery ---
   async recordUserLogin(email: string, displayName: string | null) {
     const path = `users/${email.replace(/\./g, '_')}`;
@@ -341,6 +384,20 @@ export const syncService = {
     }
   },
 
+  async syncRoleToStaff(email: string, role: UserRole) {
+    if (!auth.currentUser) return;
+    try {
+      const q = query(collection(db, 'staff'), where('email', '==', email));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const docRef = snapshot.docs[0].ref;
+        await updateDoc(docRef, { role: role });
+      }
+    } catch (e) {
+      console.error("Failed to sync role to staff:", e);
+    }
+  },
+
   async saveAccountRole(email: string, role: UserRole) {
     if (!auth.currentUser) return;
     const path = `account_roles/${email.replace(/\./g, '_')}`; // Use encoded email as doc ID
@@ -351,6 +408,7 @@ export const syncService = {
         updatedBy: auth.currentUser.email,
         updatedAt: Date.now()
       });
+      await this.syncRoleToStaff(email, role);
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
     }

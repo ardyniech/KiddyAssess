@@ -1,9 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
 import { Aspect, ScoreData, AssessmentScale } from "../types";
 
-// Note: GEMINI_API_KEY is handled server-side. 
-// We should create an API route to proxy this to keep keys safe.
-// For now, I'll define the service structure and then create the server route.
+// Note: GEMINI_API_KEY is handled server-side in server.ts. 
+// This service uses frontend fetch to interact with the backend proxy.
 
 export const generateStudentNarrative = async (
   studentName: string,

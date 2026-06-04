@@ -37,7 +37,7 @@ export const MoleculeSettingItem: React.FC<{
                     "w-8 h-8 md:w-9 md:h-9 rounded-md md:rounded-lg flex items-center justify-center shrink-0 border",
                     danger ? "bg-red-500/20 border-red-500/30 text-red-600 dark:text-red-400" : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-white/5 text-sky-500 shadow-xs"
                 )}>
-                    {React.cloneElement(icon as React.ReactElement, { size: 14 })}
+                    {React.cloneElement(icon as any, { size: 14 })}
                 </div>
             )}
             <div className="min-w-0">
@@ -69,7 +69,7 @@ export const MoleculeTabButton: React.FC<{
             "w-6 h-6 md:w-8 md:h-8 rounded-md md:rounded-lg flex items-center justify-center shrink-0 border transition-all",
             active ? "bg-sky-500 border-sky-400 text-white shadow-md shadow-sky-500/20" : "bg-white dark:bg-slate-800/50 border-slate-200 dark:border-white/10 text-slate-400 group-hover:text-sky-500"
         )}>
-            {React.cloneElement(icon as React.ReactElement, { size: 12 })}
+            {React.cloneElement(icon as any, { size: 12 })}
         </div>
         <div className="min-w-0">
             <h4 className={cn("text-[8px] md:text-[11px] font-black uppercase tracking-widest transition-colors leading-none", active ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400")}>{label}</h4>

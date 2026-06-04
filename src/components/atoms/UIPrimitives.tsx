@@ -49,7 +49,7 @@ export const Button = ({
                 fullWidth && "w-full",
                 className
             )}
-            {...props}
+            {...(props as any)}
         >
             {icon && <span className="shrink-0">{icon}</span>}
             {children && <span className="truncate">{children}</span>}

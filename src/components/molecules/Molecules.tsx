@@ -130,9 +130,12 @@ interface MoleculeFormInputProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
   icon?: React.ReactNode;
+  required?: boolean;
+  type?: string;
+  [key: string]: any;
 }
 
-export function MoleculeFormInput({ label, value, onChange, placeholder, icon }: MoleculeFormInputProps) {
+export function MoleculeFormInput({ label, value, onChange, placeholder, icon, required, type, ...props }: MoleculeFormInputProps) {
   return (
     <div className="relative">
       <AtomInput
@@ -140,11 +143,14 @@ export function MoleculeFormInput({ label, value, onChange, placeholder, icon }:
         value={value}
         onChange={onChange as any}
         placeholder={placeholder}
+        required={required}
+        type={type}
         className={cn(icon ? "pl-9" : "")}
+        {...props}
       />
       {icon && (
         <div className="absolute left-3 top-7 text-slate-300">
-          {React.cloneElement(icon as React.ReactElement, { size: 14 })}
+          {React.cloneElement(icon as any, { size: 14 })}
         </div>
       )}
     </div>

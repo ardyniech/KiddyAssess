@@ -54,11 +54,13 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({
                     icon={<BookOpen />}
                     label="Aspek Dasar"
                     value={String(totalAspects)}
+                    subValue="Dimensi Perkembangan"
                 />
                 <MoleculeMetricCard 
                     icon={<Star />}
                     label="Status Kesiapan"
                     value={classAverageCompletion === 100 ? "Lengkap" : classAverageCompletion > 50 ? "Lanjutan" : "Fase Awal"}
+                    subValue="Update Real-time"
                 />
             </div>
         </div>

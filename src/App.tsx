@@ -9,19 +9,22 @@ import { useAppData } from "./hooks/useAppData";
 import { useAppNavigation } from "./hooks/useAppNavigation";
 import { LandingPage } from "./components/organisms/LandingPage";
 import { AuthenticatedApp } from "./components/organisms/AuthenticatedApp";
+import { ErrorBoundary } from "./components/atoms/ErrorBoundary";
 
 export default function RootApp() {
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <SchoolProfileProvider>
-          <CurriculumProvider>
-            <App />
-            <Toaster position="bottom-right" />
-          </CurriculumProvider>
-        </SchoolProfileProvider>
-      </ThemeProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ThemeProvider>
+          <SchoolProfileProvider>
+            <CurriculumProvider>
+              <App />
+              <Toaster position="bottom-right" />
+            </CurriculumProvider>
+          </SchoolProfileProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

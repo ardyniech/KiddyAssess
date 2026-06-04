@@ -39,7 +39,7 @@ export function StudentListCard({
   const CHILD_STICKERS = ["🦁", "🐼", "🐨", "🦊", "🐰", "🐯", "🐱", "🐶", "🐵", "🐸", "🐤", "🦄", "🐙", "🐢", "🐧", "🦉"];
   const sticker = CHILD_STICKERS[student.name.length % CHILD_STICKERS.length];
 
-  const cardVariants = {
+  const cardVariants: any = {
     hidden: { opacity: 0, y: 8, scale: 0.96 },
     show: { 
       opacity: 1, 

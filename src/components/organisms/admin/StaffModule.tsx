@@ -15,6 +15,7 @@ import {
 import { cn } from '../../../lib/utils';
 import { Button, Card, Badge, SectionHeader } from '../../atoms/UIPrimitives';
 import { useAdminData } from '../../../hooks/useAdminData';
+import { usePermissions } from '../../../context/PermissionContext';
 
 interface StaffMember {
     id: string;
@@ -38,9 +39,12 @@ export const StaffModule = () => {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isAdding, setIsAdding] = useState(false);
+    const { canPerformAction } = usePermissions();
+    const canEditStaff = canPerformAction('edit_staff');
     
     // Quick add logic
     const handleAddFake = () => {
+        if (!canEditStaff) return;
         const newStaff: StaffMember = {
             id: crypto.randomUUID(),
             name: 'Guru Baru ' + Math.floor(Math.random() * 1000),
@@ -134,7 +138,7 @@ export const StaffModule = () => {
                                             {member.status === 'Active' ? 'Aktif' : member.status === 'On Leave' ? 'Cuti' : 'Nonaktif'}
                                         </Badge>
                                         <button 
-                                            onClick={() => setStaff(staff.filter(s => s.id !== member.id))}
+                                            onClick={() => canEditStaff && setStaff(staff.filter(s => s.id !== member.id))}
                                             className="w-9 h-9 rounded-xl hover:bg-rose-50 flex items-center justify-center text-slate-300 hover:text-rose-600 transition-all"
                                         >
                                             <MoreVertical size={18} />

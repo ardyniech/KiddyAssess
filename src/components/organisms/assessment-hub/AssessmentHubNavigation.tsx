@@ -93,7 +93,7 @@ export const AssessmentHubNavigation = ({
                                 : "text-slate-700 dark:text-slate-200 hover:text-indigo-600 font-bold hover:bg-white/80 dark:hover:bg-slate-800/40 scale-95"
                             )}
                         >
-                            {React.cloneElement(tab.icon as React.ReactElement, { size: 14 })}
+                            {React.cloneElement(tab.icon as any, { size: 14 })}
                             <span className="text-[10px] font-black uppercase tracking-wider">{tab.label}</span>
                         </button>
                     ))}

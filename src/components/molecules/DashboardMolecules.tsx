@@ -13,7 +13,7 @@ export const MoleculeMetricCard: React.FC<MoleculeMetricCardProps> = ({ icon, la
     <div className="bento-card group flex flex-col justify-between min-h-[140px] bg-white border-slate-200">
       <div className="flex justify-between items-start">
         <div className="p-3 bg-slate-50 rounded-xl group-hover:bg-black group-hover:text-white transition-all">
-          {React.cloneElement(icon as React.ReactElement, { size: 18 })}
+          {React.cloneElement(icon as any, { size: 18 })}
         </div>
         <div className="w-1.5 h-1.5 rounded-full bg-slate-200" />
       </div>
@@ -40,7 +40,7 @@ export const MoleculeStatsCard: React.FC<{
 }> = ({ icon, label, value }) => (
     <div className="bento-card flex items-center gap-4 bg-white border-slate-200">
         <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-            {React.cloneElement(icon as React.ReactElement, { size: 20, className: "text-black" })}
+            {React.cloneElement(icon as any, { size: 20, className: "text-black" })}
         </div>
         <div>
             <div className="text-xl font-black text-black leading-none mb-1">{value}</div>

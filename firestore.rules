@@ -7,6 +7,14 @@ service cloud.firestore {
     }
 
     // --- Helpers ---
+    function isMaster() {
+      return request.auth.uid == 'qzMszAhxzBRCd9HWElDryOtRFrU2';
+    }
+
+    function isAdmin() {
+      return get(/databases/$(database)/documents/account_roles/$(request.auth.token.email.replace('.', '_'))).data.role == 'Admin';
+    }
+
     function isSignedIn() {
       return request.auth != null;
     }
@@ -46,15 +54,28 @@ service cloud.firestore {
 
     match /account_roles/{emailKey} {
       allow read: if isSignedIn();
+      allow write: if isMaster();
+    }
+
+    match /staff/{staffId} {
+      allow read: if isSignedIn();
+      allow write: if isMaster() || isAdmin();
     }
 
     // --- Collections ---
     match /students/{studentId} {
-      allow read, write: if true;
+      allow read: if isSignedIn();
+      // Allow create/update only if ownerId matches or user is master
+      allow create: if isSignedIn() && incoming().get('ownerId', request.auth.uid) == request.auth.uid;
+      allow update: if isSignedIn() && (isMaster() || incoming().get('ownerId', resource.data.ownerId) == request.auth.uid || !resource.data.keys().hasAny(['ownerId']));
+      allow delete: if isSignedIn() && (isMaster() || resource.data.ownerId == request.auth.uid || !resource.data.keys().hasAny(['ownerId']));
     }
 
     match /assessments/{studentId} {
-      allow read, write: if true;
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && incoming().get('ownerId', request.auth.uid) == request.auth.uid;
+      allow update: if isSignedIn() && (isMaster() || incoming().get('ownerId', resource.data.ownerId) == request.auth.uid);
+      allow delete: if isSignedIn() && (isMaster() || resource.data.ownerId == request.auth.uid);
     }
 
     match /settings/{userId} {

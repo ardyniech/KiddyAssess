@@ -63,7 +63,7 @@ export const LoadingSplash = ({ splashOnly, userRole }: LoadingSplashProps) => {
 
     const IconComponent = icon;
 
-    const containerVariants = {
+    const containerVariants: any = {
         hidden: { opacity: 0 },
         visible: { 
             opacity: 1,
@@ -80,7 +80,7 @@ export const LoadingSplash = ({ splashOnly, userRole }: LoadingSplashProps) => {
         }
     };
 
-    const itemVariants = {
+    const itemVariants: any = {
         hidden: { y: 15, opacity: 0, scale: 0.95 },
         visible: { 
             y: 0, 

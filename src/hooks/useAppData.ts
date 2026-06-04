@@ -3,6 +3,7 @@ import { User } from 'firebase/auth';
 import { db, saveAssessments, loadAssessments, saveNarrativesLocal, loadNarrativesLocal, StudentNarratives, Event, loadEvents, saveEvents, saveTasksLocal, loadTasksLocal } from '../lib/db';
 import { syncService } from '../lib/firebaseService';
 import { syncAnalyticsService } from '../services/syncAnalyticsService';
+import { SyncManager } from '../lib/SyncManager';
 import { Student, StudentAssessment, KanbanTask } from '../types';
 import { getSchoolProfile } from '../services/settingsService';
 
@@ -286,7 +287,7 @@ export function useAppData(user: User | null) {
 
   // Sync Logic
   const triggerSync = useCallback(async () => {
-    if (!user || students.length === 0) return;
+    if (isSyncing || !user || students.length === 0) return;
     const settings = await getSchoolProfile();
     if (!settings?.enableCloudSync) return;
     
@@ -311,81 +312,17 @@ export function useAppData(user: User | null) {
         count++;
         setSyncProgress(Math.round((count / totalSteps) * 100));
 
-        // 2. Students
-        const mergedStudentsList: Student[] = [];
-        let studentsChanged = false;
-        for (let i = 0; i < students.length; i++) {
-          const s = students[i];
-          setCurrentSyncItem(`Mengunggah Peserta: ${s.name}`);
-          const merged = await syncService.saveStudent(s);
-          if (merged) {
-            mergedStudentsList.push(merged);
-            if (JSON.stringify(merged) !== JSON.stringify(s)) {
-              studentsChanged = true;
+        // 2. Students + Assessments (Atomic Sync call)
+        await SyncManager.triggerSync(
+            { students, assessments, narratives },
+            (item, count) => {
+                const totalSteps = 1 + students.length + Object.keys(assessments).length;
+                setCurrentSyncItem(item);
+                setSyncProgress(Math.round((count / totalSteps) * 100));
             }
-          } else {
-            mergedStudentsList.push(s);
-          }
-          await new Promise(r => setTimeout(r, 30));
-          count++;
-          setSyncProgress(Math.round((count / totalSteps) * 100));
-        }
+        );
         actions[1].status = 'success';
-
-        // 3. Assessments
-        const assessmentKeys = Object.keys(assessments);
-        const mergedAssessments: StudentAssessment = { ...assessments };
-        const mergedNarratives: StudentNarratives = { ...narratives };
-        let assessmentsChanged = false;
-        let narrativesChanged = false;
-
-        for (let i = 0; i < assessmentKeys.length; i++) {
-          const sid = assessmentKeys[i];
-          const sName = students.find(s => s.id === sid)?.name || "Materi";
-          setCurrentSyncItem(`Mengunggah Raport: ${sName}`);
-          
-          // Check for and retrieve any local Kartika scores/comments
-          const kScores = await db.assessments.get(`kartika_scores_${sid}`).then(r => r?.data || null);
-          const kComments = await db.assessments.get(`kartika_comments_${sid}`).then(r => r?.data || null);
-          
-          const merged = await syncService.saveAssessment(sid, assessments[sid], narratives[sid] || null, kScores, kComments);
-          if (merged) {
-            if (JSON.stringify(merged.scores) !== JSON.stringify(assessments[sid])) {
-              mergedAssessments[sid] = merged.scores;
-              assessmentsChanged = true;
-            }
-            if (merged.narratives && JSON.stringify(merged.narratives) !== JSON.stringify(narratives[sid])) {
-              mergedNarratives[sid] = merged.narratives;
-              narrativesChanged = true;
-            }
-            // If they merged kartika scores/comments, update local IndexedDB too
-            if (kScores || kComments) {
-              if (JSON.stringify(merged.kartikaScores) !== JSON.stringify(kScores)) {
-                await db.assessments.put({ id: `kartika_scores_${sid}`, data: merged.kartikaScores });
-              }
-              if (JSON.stringify(merged.kartikaComments) !== JSON.stringify(kComments)) {
-                await db.assessments.put({ id: `kartika_comments_${sid}`, data: merged.kartikaComments });
-              }
-            }
-          }
-          await new Promise(r => setTimeout(r, 30));
-          count++;
-          setSyncProgress(Math.round((count / totalSteps) * 100));
-        }
         actions[2].status = 'success';
-
-        if (studentsChanged) {
-          setStudents(mergedStudentsList);
-          await db.students.bulkPut(mergedStudentsList);
-        }
-        if (assessmentsChanged) {
-          setAssessments(mergedAssessments);
-          await saveAssessments(mergedAssessments);
-        }
-        if (narrativesChanged) {
-          setNarratives(mergedNarratives);
-          await saveNarrativesLocal(mergedNarratives);
-        }
 
         setSyncStatus('Sinkron Selesai');
         setCurrentSyncItem('Pencadangan Cloud Berhasil!');

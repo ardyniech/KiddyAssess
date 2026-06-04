@@ -29,13 +29,18 @@ export const StudentUpsertForm: React.FC<StudentUpsertFormProps> = ({
                     value={formData.name} 
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Contoh: Muhammad Al-Fatih"
+                    required
                 />
                 <div className="grid grid-cols-2 gap-3">
                     <MoleculeFormInput 
                         label="Nomor Induk / NISN" 
                         value={formData.nisn || ""} 
-                        onChange={e => setFormData({ ...formData, nisn: e.target.value })}
+                        onChange={e => {
+                          const val = e.target.value.replace(/[^0-9]/g, '');
+                          setFormData({ ...formData, nisn: val });
+                        }}
                         placeholder="N I S N"
+                        required
                     />
                     <div className="flex flex-col gap-1 text-left">
                         <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Kelas</label>

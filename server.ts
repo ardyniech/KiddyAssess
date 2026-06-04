@@ -1,19 +1,12 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY || "",
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
-    }
-  }
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 async function startServer() {
   const app = express();
@@ -75,15 +68,10 @@ async function startServer() {
         { "narrative": "teks narasi...", "parentAdvice": "teks saran orang tua..." }
       `;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json"
-        }
-      });
-
-      const responseText = response.text || "{}";
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const responseText = response.text() || "{}";
       const cleanedText = cleanJsonResponse(responseText);
       res.json(JSON.parse(cleanedText));
     } catch (error: any) {
@@ -136,15 +124,10 @@ async function startServer() {
         *Catatan: Pastikan format JSON valid.
       `;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json"
-        }
-      });
-
-      const responseText = response.text || "{}";
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const responseText = response.text() || "{}";
       const cleanedText = cleanJsonResponse(responseText);
       const data = JSON.parse(cleanedText);
       res.json({ refinedText: data.refinedText || text });
