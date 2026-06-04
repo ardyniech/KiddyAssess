@@ -73,7 +73,11 @@ const AuthenticatedAppContent = ({ appData, navigation, showSplash }: any) => {
                   }
                   setStudents([...students, {...s, id: crypto.randomUUID(), updatedAt: Date.now()}]);
                   setSidebarAddMode(false);
-                }} 
+                }}
+                onAddStudentsBatch={batch => { 
+                  if (!canPerformAction('add_student')) return;
+                  setStudents((prev: any) => [...prev, ...batch.map((s: any) => ({...s, id: crypto.randomUUID(), updatedAt: Date.now()}))]);
+                }}
                 onUpdateStudent={s => {
                   if (!canPerformAction('edit_student')) {
                     console.warn("Unauthorized edit student block.");

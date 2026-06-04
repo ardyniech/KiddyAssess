@@ -33,7 +33,7 @@ async function startServer() {
 
       const lengthGuideline = lengthTarget === "short"
         ? "MAX 250 karakter (sangat ringkas, padat langsung ke poin capaian utama)."
-        : "MAX 450 karakter (panjang standar laporan perkembangan, terurai runut).";
+        : "Sekitar 600 - 800 karakter (agak detail, terurai runut menjadi beberapa paragraf yang mengalir, tidak terlalu panjang namun juga tidak terlalu singkat, ukuran paragraf sedang/menengah).";
 
       const autoCorrectGuideline = autoCorrect 
         ? "- Lakukan KOREKSI OTOMATIS: Poles bahasa menjadi indah, pastikan Ejaan Yang Disempurnakan (EYD) tepat, perbaiki tanda baca, dan hilangkan saltik/typo." 

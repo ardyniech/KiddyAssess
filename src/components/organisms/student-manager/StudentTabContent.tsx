@@ -1,9 +1,9 @@
-import React from 'react';
-import { Menu, Users } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import Papa from 'papaparse';
+import { Menu, Users, UploadCloud, Plus } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { StudentManagerNavigation } from './StudentManagerNavigation';
 import { StudentListSection } from './StudentListSection';
-import { Plus } from 'lucide-react';
 import { Student } from '../../../types';
 
 interface StudentTabContentProps {
@@ -28,6 +28,7 @@ interface StudentTabContentProps {
     setEditingStudent: (s: Student | null) => void;
     setFormData: (data: any) => void;
     setIsAdding: (adding: boolean) => void;
+    onAddStudentsBatch?: (students: Omit<Student, "id">[]) => void;
 }
 
 export const StudentTabContent = ({
@@ -51,8 +52,50 @@ export const StudentTabContent = ({
     isReadOnly,
     setEditingStudent,
     setFormData,
-    setIsAdding
+    setIsAdding,
+    onAddStudentsBatch
 }: StudentTabContentProps) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isImporting, setIsImporting] = useState(false);
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !onAddStudentsBatch) return;
+
+        setIsImporting(true);
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+                try {
+                    const batch: Omit<Student, "id">[] = results.data.map((row: any) => ({
+                        name: row.Nama || row.name || row.NAMA || "Tanpa Nama",
+                        nisn: row.NISN || row.nisn || "",
+                        kelompok: row.Kelompok || row.kelompok || row.Kelas || "A1",
+                        semester: row.Semester || row.semester || "1",
+                        semesterType: row.TipeSemester || row.semesterType || "Ganjil",
+                        height: parseInt(row.Tinggi || row.height || '0', 10) || 0,
+                        weight: parseInt(row.Berat || row.weight || '0', 10) || 0,
+                        photoUrl: row.URLFoto || row.photoUrl || ""
+                    }));
+                    if (batch.length > 0) {
+                        onAddStudentsBatch(batch);
+                    }
+                } catch (err) {
+                    console.error("Failed to parse CSV", err);
+                } finally {
+                    setIsImporting(false);
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                }
+            },
+            error: (err) => {
+                console.error("Error reading CSV", err);
+                setIsImporting(false);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            }
+        });
+    };
+
     return (
         <div className="flex-1 flex flex-col overflow-hidden min-h-0">
             <div className="p-2.5 bg-slate-50 border-b border-slate-100 flex gap-1 shrink-0">
@@ -105,7 +148,7 @@ export const StudentTabContent = ({
                         />
                         
                         {!isReadOnly && (
-                            <div className="p-3 bg-slate-50 border-t border-slate-100 shrink-0">
+                            <div className="p-3 bg-slate-50 border-t border-slate-100 shrink-0 flex flex-col gap-2">
                                 <button 
                                     onClick={() => {
                                         setEditingStudent(null);
@@ -117,6 +160,29 @@ export const StudentTabContent = ({
                                     <Plus size={14} />
                                     Add New Student Record
                                 </button>
+                                
+                                {onAddStudentsBatch && (
+                                    <>
+                                        <input 
+                                            type="file" 
+                                            accept=".csv" 
+                                            className="hidden" 
+                                            ref={fileInputRef} 
+                                            onChange={handleFileUpload} 
+                                        />
+                                        <button 
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={isImporting}
+                                            className={cn(
+                                                "w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all border shadow-sm cursor-pointer",
+                                                isImporting ? "bg-slate-100 border-slate-200 text-slate-400" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                                            )}
+                                        >
+                                            <UploadCloud size={14} />
+                                            {isImporting ? "Mengimpor..." : "Batch Import CSV"}
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>

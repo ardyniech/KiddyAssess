@@ -22,6 +22,7 @@ import { OrganismAssessmentHub } from '../components/organisms/OrganismAssessmen
 import { OrganismReportGenerator } from '../components/organisms/reports/OrganismReportGenerator';
 import { OrganismAppSettings } from '../components/organisms/OrganismAppSettings';
 import { AttendanceModule } from '../components/organisms/attendance/AttendanceModule';
+import { CompareStudentsModule } from '../components/organisms/CompareStudentsModule';
 
 import { StaffModule } from '../components/organisms/admin/StaffModule';
 import { FinanceModule } from '../components/organisms/admin/FinanceModule';
@@ -105,6 +106,16 @@ export const APP_MODULES: AppModule[] = [
         showInSidebar: true,
         requiredRoles: ['MASTER', 'SUPER_USER', 'ADMIN', 'TEACHER'],
         order: 5
+    },
+    {
+        id: 'compare',
+        name: 'Bandingkan',
+        icon: Eye,
+        category: 'assessment',
+        component: CompareStudentsModule,
+        showInSidebar: true,
+        requiredRoles: ['MASTER', 'SUPER_USER', 'ADMIN', 'TEACHER'],
+        order: 6
     },
     {
         id: 'finance',

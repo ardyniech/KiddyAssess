@@ -106,7 +106,31 @@ export const TeacherDashboard = ({
             });
             return data;
         });
-        return { aspectMetricsLocal, scoreCountsResult, total, distData };
+
+        const avgScoresData = aspectsList.map(a => {
+            let totalScore = 0;
+            let count = 0;
+            students.forEach(s => {
+               if (assessments[s.id] && assessments[s.id][a.id]) {
+                   const scores = assessments[s.id][a.id];
+                   Object.values(scores).forEach((val: any) => {
+                       let scaleVal = typeof val === 'string' ? val : val?.scale;
+                       if (scaleVal === 'BB') { totalScore += 1; count++; }
+                       if (scaleVal === 'MB') { totalScore += 2; count++; }
+                       if (scaleVal === 'BSH') { totalScore += 3; count++; }
+                       if (scaleVal === 'BSB') { totalScore += 4; count++; }
+                   });
+               }
+            });
+            return {
+                subject: a.name.length > 8 ? a.name.substring(0, 8) + '...' : a.name,
+                fullSubject: a.name,
+                A: count > 0 ? (totalScore / count).toFixed(1) : 0,
+                fullMark: 4
+            };
+        });
+
+        return { aspectMetricsLocal, scoreCountsResult, total, distData, avgScoresData };
     }, [students, aspectsList, assessments]);
 
     const paginatedStudents = useMemo(() => filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage), [filteredStudents, currentPage]);
@@ -154,6 +178,7 @@ export const TeacherDashboard = ({
                                         totalScoresSubmitted={analyticsData.total}
                                         schoolProfile={null}
                                         distributionChartData={analyticsData.distData}
+                                        avgScoresData={analyticsData.avgScoresData}
                                     />
                                 </div>
                             </div>

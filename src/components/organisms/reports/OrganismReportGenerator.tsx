@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, Printer, Star, Heart, Award, Eye } from 'lucide-react';
+import { useReactToPrint } from 'react-to-print';
 import { Student, Aspect } from '../../../types';
 import { SavedNarrative } from '../../../lib/db';
 import { cn } from '../../../lib/utils';
 import { NarrativeCard } from './NarrativeCard';
 import { useReportGenerator } from './useReportGenerator';
 import { KARTIKA_5NK_ASPECTS } from './KartikaData';
+import { PrintableReport } from './PrintableReport';
 
 interface OrganismReportGeneratorProps {
     key?: React.Key;
@@ -26,6 +28,12 @@ export function OrganismReportGenerator({
     onNarrativesChange,
     setView
 }: OrganismReportGeneratorProps) {
+    const componentRef = useRef<HTMLDivElement>(null);
+    const handlePrint = useReactToPrint({
+      documentTitle: `Laporan_Perkembangan_${student.name.replace(/\s+/g, '_')}`,
+      contentRef: componentRef,
+    });
+    
     const [copiedFeedback, setCopiedFeedback] = React.useState(false);
     const {
         generating,
@@ -254,13 +262,21 @@ export function OrganismReportGenerator({
                     </button>
                     
                     <button 
-                        onClick={() => window.print()}
+                        onClick={() => handlePrint()}
                         className="px-6 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-slate-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 w-full sm:w-auto justify-center cursor-pointer"
                     >
                         <Printer size={14} /> Cetak PDF
                     </button>
                 </div>
             </div>
+
+            <PrintableReport 
+                ref={componentRef} 
+                student={student} 
+                aspects={aspects} 
+                savedNarratives={savedNarratives} 
+                kartikaComments={kartikaComments} 
+            />
 
             {/* Custom Interactive Feedback Toast */}
             <AnimatePresence>

@@ -12,6 +12,7 @@ interface OrganismStudentManagerProps {
   students: Student[];
   getStudentProgress: (sid: string) => number;
   onAddStudent: (student: Omit<Student, "id">) => void;
+  onAddStudentsBatch?: (students: Omit<Student, "id">[]) => void;
   onUpdateStudent: (student: Student) => void;
   onDeleteStudent: (studentId: string) => void;
   onSelectStudent: (student: Student) => void;
@@ -27,6 +28,7 @@ export function OrganismStudentManager({
   students, 
   getStudentProgress, 
   onAddStudent, 
+  onAddStudentsBatch,
   onUpdateStudent, 
   onDeleteStudent, 
   onSelectStudent, 
@@ -107,6 +109,7 @@ export function OrganismStudentManager({
             setEditingStudent={setEditingStudent}
             setFormData={setFormData}
             setIsAdding={setIsAdding}
+            onAddStudentsBatch={onAddStudentsBatch}
         />
       )}
       

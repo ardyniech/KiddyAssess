@@ -88,7 +88,7 @@ export function OrganismCurriculumAssessment({
       <div className="max-w-4xl mx-auto px-2 flex-1 w-full">
         
         {/* Progress Tracker Banner (Google Developer style: solid card, clean stats) */}
-        <div className="bento-card mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 text-left">
+        <div className="bento-card mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-5 text-left">
           <div className="flex-1">
             <span className="text-[10px] font-black uppercase tracking-widest text-[#2c4e7d] block mb-0.5">PROGRESS KOKURIKULER</span>
             <span className="text-sm font-black text-slate-950 leading-tight">
@@ -176,7 +176,7 @@ export function OrganismCurriculumAssessment({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: index * 0.01 }}
-                  className="bento-card group flex flex-col md:flex-row md:items-center gap-2 p-3 transition-all hover:bg-slate-50 hover:border-indigo-400 text-left"
+                  className="bento-card group flex flex-col md:flex-row md:items-center gap-2 p-[5px] min-h-[80px] md:h-[80px] transition-all hover:bg-slate-50 hover:border-indigo-400 text-left"
                 >
                   <div className="flex items-start gap-2 flex-1 overflow-hidden">
                     <div 

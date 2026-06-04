@@ -85,7 +85,7 @@ export function OrganismKartika5NKAssessment({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: index * 0.01 }}
-                  className="bento-card group flex flex-col md:flex-row md:items-center gap-2 p-3 transition-all text-left"
+                  className="bento-card group flex flex-col md:flex-row md:items-center gap-2 p-[5px] min-h-[80px] md:h-[80px] transition-all text-left"
                 >
                   <div className="flex items-start gap-2 flex-1 overflow-hidden">
                     <div 

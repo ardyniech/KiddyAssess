@@ -37,7 +37,12 @@ export const AspectsToolbar = ({
     return (
         <div className="mb-3">
             <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none">
-                {aspects.map((aspect, idx) => (
+                {aspects.map((aspect, idx) => {
+                    const bgColors = ["bg-rose-500 border-rose-600 shadow-rose-500/30", "bg-emerald-500 border-emerald-600 shadow-emerald-500/30", "bg-cyan-500 border-cyan-600 shadow-cyan-500/30", "bg-amber-500 border-amber-600 shadow-amber-500/30", "bg-violet-500 border-violet-600 shadow-violet-500/30", "bg-fuchsia-500 border-fuchsia-600 shadow-fuchsia-500/30"];
+                    const hoverColors = ["hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50", "hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50", "hover:text-cyan-600 hover:border-cyan-300 hover:bg-cyan-50", "hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50", "hover:text-violet-600 hover:border-violet-300 hover:bg-violet-50", "hover:text-fuchsia-600 hover:border-fuchsia-300 hover:bg-fuchsia-50"];
+                    const activeColor = bgColors[idx % bgColors.length];
+                    const hoverColor = hoverColors[idx % hoverColors.length];
+                    return(
                     <div key={aspect.id} className="relative flex items-center shrink-0">
                         {editingAspectId === aspect.id ? (
                             <div className="flex items-center gap-1.5 bg-white border border-indigo-600 rounded-xl px-2.5 py-1 shadow-md">
@@ -57,8 +62,8 @@ export const AspectsToolbar = ({
                                 className={cn(
                                     "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border flex items-center gap-2 shrink-0 outline-none cursor-pointer",
                                     activeAspectIndex === idx 
-                                        ? "bg-indigo-600 border-indigo-700 text-white shadow-sm font-black" 
-                                        : "bg-white border-slate-200 text-slate-700 hover:text-indigo-600 hover:border-indigo-300 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+                                        ? `${activeColor} text-white shadow-sm font-black` 
+                                        : `bg-white border-slate-200 text-slate-700 ${hoverColor}`
                                 )}
                             >
                                 {aspect.name}
@@ -71,7 +76,7 @@ export const AspectsToolbar = ({
                             </button>
                         )}
                     </div>
-                ))}
+                )})}
                 <div className="flex items-center gap-1.5 ml-3 pl-3 border-l border-slate-100">
                     <button 
                         onClick={() => setIsManagingAspects(!isManagingAspects)}

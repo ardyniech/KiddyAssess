@@ -11,7 +11,7 @@ export function KartikaProgressTracker({ aspectName, ratedCount, totalCount }: K
   const aspectPercentClamped = Math.min(100, Math.max(0, aspectPercent));
 
   return (
-    <div className="bento-card mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 text-left">
+    <div className="bento-card mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-5 text-left">
       <div className="flex-1">
         <span className="text-[10px] font-black uppercase tracking-widest text-[#822a3f] block mb-0.5">PROGRESS 5NK NASIONAL</span>
         <span className="text-sm font-black text-rose-950 leading-tight">

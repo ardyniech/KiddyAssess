@@ -101,20 +101,20 @@ export function generateIndependentNarrative(studentName: string, aspect: Aspect
   const midIndicators = indicators.filter(i => scores[i.id] === 'MB');
   const lowIndicators = indicators.filter(i => scores[i.id] === 'BB');
 
-  // 2. Pick up to 2 High, 2 Low, 2 Mid. 
-  // We prioritize high/low to give a balanced review, then pad with mid if needed.
+  // 2. Pick up to 3 High, 3 Low, 3 Mid. 
+  // We prioritize high/low to give a balanced review, a bit longer paragraph now.
   let selectedIndicators = [
-    ...highIndicators.slice(0, 2),
-    ...lowIndicators.slice(0, 2),
-    ...midIndicators.slice(0, 2)
+    ...highIndicators.slice(0, 3),
+    ...lowIndicators.slice(0, 3),
+    ...midIndicators.slice(0, 3)
   ];
   
-  // If we have very few selected, we might want to just grab more from the others if available to reach at least 3-4 if possible
-  if (selectedIndicators.length < 3) {
-      const remainingHigh = highIndicators.slice(2);
-      const remainingMid = midIndicators.slice(2);
-      const remainingLow = lowIndicators.slice(2);
-      selectedIndicators = [...selectedIndicators, ...remainingHigh, ...remainingMid, ...remainingLow].slice(0, 4);
+  // If we have very few selected, we might want to just grab more from the others if available to reach at least 4-5 if possible
+  if (selectedIndicators.length < 4) {
+      const remainingHigh = highIndicators.slice(3);
+      const remainingMid = midIndicators.slice(3);
+      const remainingLow = lowIndicators.slice(3);
+      selectedIndicators = [...selectedIndicators, ...remainingHigh, ...remainingMid, ...remainingLow].slice(0, 6);
   }
 
   // Sort them so the narrative flows a bit better (High -> Mid -> Low)
