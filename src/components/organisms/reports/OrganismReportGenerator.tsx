@@ -1,6 +1,6 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageCircle, Printer, Star, Heart, Award, Eye } from 'lucide-react';
+import { MessageCircle, Printer, Star, Heart, Award, Eye, FileText, Sparkles, RefreshCw } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import { Student, Aspect } from '../../../types';
 import { SavedNarrative } from '../../../lib/db';
@@ -8,7 +8,8 @@ import { cn } from '../../../lib/utils';
 import { NarrativeCard } from './NarrativeCard';
 import { useReportGenerator } from './useReportGenerator';
 import { KARTIKA_5NK_ASPECTS } from './KartikaData';
-import { PrintableReport } from './PrintableReport';
+import { PDFPreviewBuilder } from './PDFPreviewBuilder';
+import { calculateStudentTrend } from './autoGeneratorUtils';
 
 interface OrganismReportGeneratorProps {
     key?: React.Key;
@@ -28,15 +29,12 @@ export function OrganismReportGenerator({
     onNarrativesChange,
     setView
 }: OrganismReportGeneratorProps) {
-    const componentRef = useRef<HTMLDivElement>(null);
-    const handlePrint = useReactToPrint({
-      documentTitle: `Laporan_Perkembangan_${student.name.replace(/\s+/g, '_')}`,
-      contentRef: componentRef,
-    });
-    
-    const [copiedFeedback, setCopiedFeedback] = React.useState(false);
+    const [copiedFeedback, setCopiedFeedback] = useState(false);
+    const [showPreview, setShowPreview] = useState(false);
+
     const {
         generating,
+        apiError,
         activeTab,
         setActiveTab,
         handleGenerateAI,
@@ -45,12 +43,26 @@ export function OrganismReportGenerator({
         kartikaComments,
         handleGenerateKartikaAI,
         handleRefineKartikaText,
-        updateKartikaComment
+        updateKartikaComment,
+        autoProgress,
+        handleAutoGenerateAll
     } = useReportGenerator(student, aspects, allScores, savedNarratives, onNarrativesChange);
 
     // Calculate count of rated Kartika indicators for live display
     const ratedKartikaCount = kartikaScores ? Object.keys(kartikaScores).filter(k => kartikaScores[k]).length : 0;
     const totalKartikaCount = KARTIKA_5NK_ASPECTS.flatMap(a => a.indicators).length;
+
+    if (showPreview) {
+        return (
+            <PDFPreviewBuilder 
+                student={student}
+                aspects={aspects}
+                savedNarratives={savedNarratives}
+                kartikaComments={kartikaComments}
+                onClose={() => setShowPreview(false)}
+            />
+        );
+    }
 
     return (
         <div className="flex-1 overflow-y-auto bg-slate-50 p-4 md:p-6 custom-scrollbar">
@@ -101,8 +113,79 @@ export function OrganismReportGenerator({
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="space-y-4"
+                            className="space-y-5"
                         >
+                            {/* Bento Dashboard for Auto-Fill with Real-Time Trends & Progress */}
+                            {(() => {
+                                const trend = calculateStudentTrend(aspects, allScores);
+                                return (
+                                    <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 border border-slate-800 rounded-3xl p-5 text-white shadow-xl flex flex-col md:flex-row gap-5 items-stretch overflow-hidden select-none relative group no-print">
+                                        <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:scale-125 transition-all duration-700 pointer-events-none" />
+                                        
+                                        <div className="flex-1 space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 bg-indigo-500/20 text-indigo-400 rounded-xl flex items-center justify-center border border-indigo-500/30">
+                                                    <Sparkles size={16} className="animate-pulse" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-sm font-black uppercase tracking-wider text-indigo-200">Auto-Generate Deteksi Cerdas</h3>
+                                                    <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-widest leading-none mt-0.5">Asah Narasi Instan Sesuai Skor & Tren</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Student Trends Metrics Banner */}
+                                            <div className="grid grid-cols-2 gap-3 bg-slate-950/40 p-4 border border-slate-800 rounded-2xl">
+                                                <div className="space-y-1">
+                                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block">Tren Perkembangan</span>
+                                                    <span className="text-xs font-extrabold text-emerald-400 uppercase tracking-tight block leading-tight">{trend.trendLabel}</span>
+                                                    <span className="text-[8.5px] font-bold text-slate-400 block leading-tight">{trend.trendDesc}</span>
+                                                </div>
+                                                <div className="space-y-1 border-l border-slate-800 pl-3">
+                                                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block">Metrik Aktivitas</span>
+                                                    <span className="text-xs font-black text-indigo-300 block leading-tight">{trend.totalRated} Indikator Dinilai</span>
+                                                    <span className="text-[8.5px] font-bold text-slate-400 block leading-tight">Mendukung pre-fill narasi cepat berbasis instrumen.</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="w-full md:w-64 flex flex-col justify-center gap-3 bg-slate-950/25 p-4 md:p-3 rounded-2xl border border-slate-800/40">
+                                            {!autoProgress.active ? (
+                                                <>
+                                                    <p className="text-[9.5px] font-bold text-indigo-200/80 leading-relaxed text-center">
+                                                        AI memproses status di atas untuk menyusun narasi rapor lengkap secara instan.
+                                                    </p>
+                                                    <button 
+                                                        onClick={handleAutoGenerateAll}
+                                                        className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/30 hover:scale-[1.03] active:scale-[0.97] transition-all cursor-pointer flex items-center justify-center gap-2"
+                                                    >
+                                                        <Sparkles size={12} /> Auto-Generate Semua
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <div className="space-y-3 py-2 w-full">
+                                                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-indigo-300">
+                                                        <span className="animate-pulse">Memproses...</span>
+                                                        <span>{autoProgress.percent}%</span>
+                                                    </div>
+                                                    
+                                                    {/* Custom High Contrast Visual Progress Bar */}
+                                                    <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                                                        <div 
+                                                            className="h-full bg-indigo-500 rounded-full transition-all duration-300 shadow-sm"
+                                                            style={{ width: `${autoProgress.percent}%` }}
+                                                        />
+                                                    </div>
+                                                    
+                                                    <p className="text-[9px] font-bold text-slate-300 leading-tight text-center italic line-clamp-2">
+                                                        {autoProgress.currentAspect}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
                             {aspects.map((aspect) => (
                                 <NarrativeCard 
                                     key={aspect.id}
@@ -262,24 +345,29 @@ export function OrganismReportGenerator({
                     </button>
                     
                     <button 
-                        onClick={() => handlePrint()}
+                        onClick={() => setShowPreview(true)}
                         className="px-6 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-slate-900/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 w-full sm:w-auto justify-center cursor-pointer"
                     >
-                        <Printer size={14} /> Cetak PDF
+                        <FileText size={14} /> Preview & Cetak PDF
                     </button>
                 </div>
             </div>
 
-            <PrintableReport 
-                ref={componentRef} 
-                student={student} 
-                aspects={aspects} 
-                savedNarratives={savedNarratives} 
-                kartikaComments={kartikaComments} 
-            />
-
             {/* Custom Interactive Feedback Toast */}
             <AnimatePresence>
+                {apiError && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 50, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                        className="fixed bottom-24 right-6 left-6 md:left-auto md:max-w-md z-50 bg-red-900 border border-red-700 text-white text-xs p-4 rounded-2xl shadow-xl flex items-center gap-3 no-print font-sans"
+                    >
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse flex-shrink-0" />
+                        <p className="flex-1 font-semibold leading-relaxed">
+                            <strong className="text-red-400">AI Error: </strong> {apiError}
+                        </p>
+                    </motion.div>
+                )}
                 {copiedFeedback && (
                     <motion.div 
                         initial={{ opacity: 0, y: 50, scale: 0.95 }}

@@ -83,9 +83,9 @@ export function useKartikaNarrative(student: Student, scores: Record<string, Ass
                     return newComments;
                 });
             }
-        } catch(error) {
+        } catch(error: any) {
             console.error("Failed to generate narrative", error);
-            alert("Gagal melakukan generate narasi menggunakan AI. Silakan coba mematikan bantuan AI di pengaturan.");
+            alert(`Gagal melakukan generate narasi menggunakan AI.\n${error.message || ""}\nSilakan coba mematikan bantuan AI di pengaturan atau perbaiki API Key.`);
         } finally {
             setIsGeneratingNarrative(false);
         }

@@ -5,7 +5,9 @@ import {
   UserPlus, 
   Search, 
   MoreVertical,
-  CalendarCheck
+  CalendarCheck,
+  UploadCloud,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Student, StudentAssessment, Aspect } from '../../../types';
 import { cn } from '../../../lib/utils';
@@ -14,12 +16,14 @@ import { StudentDeleteModal } from './StudentDeleteModal';
 import { StudentListCard } from './StudentListCard';
 import { StudentDetailModal } from './StudentDetailModal';
 import { StudentAttendanceModal } from './StudentAttendanceModal';
+import { StudentCsvImportModal } from './StudentCsvImportModal';
 import { usePermissions } from '../../../context/PermissionContext';
 import { EmptyState } from '../../atoms/EmptyState';
 
 interface OrganismStudentPageProps {
   key?: React.Key;
   students: Student[];
+  setStudents?: React.Dispatch<React.SetStateAction<Student[]>>;
   assessments?: StudentAssessment;
   aspects?: Aspect[];
   getStudentProgress: (sid: string) => number;
@@ -31,6 +35,7 @@ interface OrganismStudentPageProps {
 
 export function OrganismStudentPage({
   students,
+  setStudents,
   getStudentProgress,
   onAddStudent,
   onEditStudent,
@@ -43,6 +48,8 @@ export function OrganismStudentPage({
   const [search, setSearch] = useState('');
   const [filterClass, setFilterClass] = useState<string>('all');
   const [isManageMode, setIsManageMode] = useState(false);
+  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   
   const [studentToEdit, setStudentToEdit] = useState<Student | null>(null);
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
@@ -56,6 +63,22 @@ export function OrganismStudentPage({
     const matchesClass = filterClass === 'all' || s.kelompok === filterClass;
     return matchesSearch && matchesClass;
   });
+
+  const handleAddStudentsBatch = (batch: Omit<Student, 'id'>[]) => {
+    if (isReadOnly) return;
+    const newStudents = batch.map((s: any) => ({
+      ...s,
+      id: crypto.randomUUID(),
+      updatedAt: Date.now()
+    }));
+    if (setStudents) {
+      setStudents(prev => [...prev, ...newStudents]);
+      setToastMessage(`✓ Berhasil mengimpor ${batch.length} data siswa secara massal!`);
+      setTimeout(() => {
+        setToastMessage(null);
+      }, 4500);
+    }
+  };
 
   const handleEditSubmit = (updatedStudent: Student) => {
     if (isReadOnly) {
@@ -152,14 +175,23 @@ export function OrganismStudentPage({
                 />
              </div>
              
-             {!isReadOnly && (
-               <button 
-                  onClick={onAddStudent}
-                  className="flex items-center justify-center w-10 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-md shadow-indigo-100 border border-indigo-700"
-               >
-                  <UserPlus size={16} />
-               </button>
-             )}
+              {!isReadOnly && (
+                <div className="flex items-center gap-2">
+                  <button 
+                     onClick={() => setShowCsvImport(true)}
+                     title="Impor Massal Rombel (CSV)"
+                     className="flex items-center justify-center w-10 h-10 bg-white hover:bg-slate-50 text-slate-600 hover:text-indigo-600 border border-slate-200 rounded-lg shadow-sm transition-all cursor-pointer"
+                  >
+                     <UploadCloud size={16} />
+                  </button>
+                  <button 
+                     onClick={onAddStudent}
+                     className="flex items-center justify-center w-10 h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-md shadow-indigo-100 border border-indigo-700 cursor-pointer"
+                  >
+                     <UserPlus size={16} />
+                  </button>
+                </div>
+              )}
           </div>
         </div>
 
@@ -263,6 +295,28 @@ export function OrganismStudentPage({
             onClose={() => setStudentToDelete(null)}
             onConfirm={handleDeleteConfirm}
           />
+        )}
+
+        {showCsvImport && (
+          <StudentCsvImportModal 
+            onClose={() => setShowCsvImport(false)}
+            onAddStudentsBatch={handleAddStudentsBatch}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* High contrast animated toast notification */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-slate-750 text-white text-[11px] font-black uppercase tracking-wider py-3.5 px-5 rounded-2xl shadow-2xl flex items-center gap-3 select-none"
+          >
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse animate-duration-1000" />
+            <span>{toastMessage}</span>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

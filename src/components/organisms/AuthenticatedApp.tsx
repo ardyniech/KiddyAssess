@@ -9,6 +9,8 @@ import { PermissionProvider } from '../../context/PermissionContext';
 import { LoadingSplash } from './LoadingSplash';
 import { useAuthenticatedApp } from './useAuthenticatedApp';
 import { getModuleById } from '../../registry/appModules';
+import { NotificationCenter } from './notification/NotificationCenter';
+import { loadStoredNotifications } from './notification/notificationStore';
 
 export const AuthenticatedApp = ({ appData, navigation, showSplash }: any) => {
   return (
@@ -49,6 +51,20 @@ const AuthenticatedAppContent = ({ appData, navigation, showSplash }: any) => {
       backToStudents,
       backToDashboard,
   } = useAuthenticatedApp(appData, navigation, showSplash);
+
+  const [notifOpen, setNotifOpen] = React.useState(false);
+  const [notifications, setNotifications] = React.useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = React.useState(0);
+
+  React.useEffect(() => {
+    const list = loadStoredNotifications(students);
+    setNotifications(list);
+  }, [students]);
+
+  React.useEffect(() => {
+    const unread = notifications.filter(n => !n.isRead).length;
+    setUnreadCount(unread);
+  }, [notifications]);
 
   return (
     <div className="min-h-[100dvh] w-full font-sans flex flex-col relative bg-slate-50">
@@ -130,8 +146,20 @@ const AuthenticatedAppContent = ({ appData, navigation, showSplash }: any) => {
           currentSyncItem={currentSyncItem}
           triggerSync={triggerSync}
           lastSaved={lastSaved}
+          unreadCount={unreadCount}
+          onNotificationClick={() => setNotifOpen(true)}
         />
       </div>
+
+      <NotificationCenter 
+        isOpen={notifOpen}
+        onClose={() => setNotifOpen(false)}
+        students={students}
+        unreadCount={unreadCount}
+        setUnreadCount={setUnreadCount}
+        notifications={notifications}
+        setNotifications={setNotifications}
+      />
 
       <main className="flex-1 flex flex-col relative transition-all duration-500 overflow-y-auto overflow-x-hidden scroll-smooth pb-16">
         {activeModule && (

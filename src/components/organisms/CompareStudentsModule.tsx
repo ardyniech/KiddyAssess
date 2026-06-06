@@ -53,7 +53,9 @@ export const CompareStudentsModule: React.FC<CompareStudentsProps> = ({ students
     const gapAnalysis = useMemo(() => {
         if(!studentA || !studentB) return [];
         return data.map(item => {
-            const gap = Number((item[studentAId] - item[studentBId]).toFixed(2));
+            const valA = (item as any)[studentAId] || 0;
+            const valB = (item as any)[studentBId] || 0;
+            const gap = Number((valA - valB).toFixed(2));
             return {
                 aspectName: item.subject,
                 gap,

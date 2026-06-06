@@ -12,7 +12,8 @@ import {
     Settings2,
     CheckCircle2,
     ShieldCheck,
-    ClipboardList
+    ClipboardList,
+    Trophy
 } from 'lucide-react';
 import { AppModule } from '../types';
 
@@ -23,6 +24,7 @@ import { OrganismReportGenerator } from '../components/organisms/reports/Organis
 import { OrganismAppSettings } from '../components/organisms/OrganismAppSettings';
 import { AttendanceModule } from '../components/organisms/attendance/AttendanceModule';
 import { CompareStudentsModule } from '../components/organisms/CompareStudentsModule';
+import { TeacherRewardsModule } from '../components/organisms/rewards/TeacherRewardsModule';
 
 import { StaffModule } from '../components/organisms/admin/StaffModule';
 import { FinanceModule } from '../components/organisms/admin/FinanceModule';
@@ -166,6 +168,16 @@ export const APP_MODULES: AppModule[] = [
         showInSidebar: true,
         requiredRoles: ['MASTER', 'SUPER_USER', 'ADMIN', 'TEACHER', 'OPERATOR'],
         order: 12
+    },
+    {
+        id: 'rewards',
+        name: 'Reward Guru',
+        icon: Trophy,
+        category: 'utility',
+        component: TeacherRewardsModule,
+        showInSidebar: true,
+        requiredRoles: ['MASTER', 'SUPER_USER', 'ADMIN', 'TEACHER'],
+        order: 13
     },
     {
         id: 'settings',

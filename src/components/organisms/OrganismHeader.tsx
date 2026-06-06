@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { 
   School,
   Pencil, Wand2, Users, BookOpen, Wallet, Package, 
-  Calendar, ShieldCheck, WifiOff
+  Calendar, ShieldCheck, WifiOff, Bell
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { cn } from "../../lib/utils";
@@ -28,7 +28,9 @@ export function OrganismHeader({
   currentSyncItem,
   triggerSync,
   lastSaved,
-  onNavigate
+  onNavigate,
+  unreadCount = 0,
+  onNotificationClick
 }: any) {
   const { user } = useAuth();
   const { userRole } = usePermissions();
@@ -164,6 +166,18 @@ export function OrganismHeader({
               triggerSync={triggerSync}
               lastSaved={lastSaved}
             />
+            <button
+              onClick={onNotificationClick}
+              className="relative w-10 h-10 border border-slate-200 hover:border-indigo-400 bg-white hover:bg-slate-50 text-slate-600 hover:text-indigo-600 rounded-xl flex items-center justify-center transition-all cursor-pointer shadow-sm active:scale-95 shrink-0"
+              title="Kotak Pengingat Guru (Notifikasi)"
+            >
+              <Bell size={15} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-rose-500 border border-white text-white text-[8.5px] font-black rounded-full flex items-center justify-center animate-pulse">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
             <UserProfileSection user={user} onLogin={signInWithGoogle} onLogout={logout} onSettingsClick={onSettingsClick} />
         </div>
       </div>

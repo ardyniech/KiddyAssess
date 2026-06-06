@@ -9,6 +9,9 @@ import { TeacherKPIStatusBoard } from './teacher-dashboard/TeacherKPIStatusBoard
 import { TeacherClassroomMetrics } from './teacher-dashboard/TeacherClassroomMetrics';
 import { TeacherDirectory } from './teacher-dashboard/TeacherDirectory';
 import { TeacherPermissionGuide } from './teacher-dashboard/TeacherPermissionGuide';
+import { TeacherAttendanceTrendCard } from './teacher-dashboard/TeacherAttendanceTrendCard';
+import { QuickScheduleWidget } from '../calendar/QuickScheduleWidget';
+import { AIInsightsPanel } from './AIInsightsPanel';
 
 interface TeacherDashboardProps {
     students: Student[];
@@ -18,6 +21,7 @@ interface TeacherDashboardProps {
     setView?: (view: string) => void;
     events?: any[];
     tasks?: any[];
+    setEvents?: any;
 }
 
 export const TeacherDashboard = ({ 
@@ -27,7 +31,8 @@ export const TeacherDashboard = ({
     onSelectStudent, 
     setView,
     events = [],
-    tasks = []
+    tasks = [],
+    setEvents
 }: TeacherDashboardProps) => {
     const upcomingEventsCount = events.filter(e => new Date(e.date) >= new Date()).length;
     const pendingTasksCount = tasks.filter(t => t.status !== 'DONE').length;
@@ -147,8 +152,20 @@ export const TeacherDashboard = ({
             
             <main className="flex-1 p-5 max-w-7xl w-full mx-auto space-y-4">
                 <TeacherActionGrid pendingTasksCount={pendingTasksCount} upcomingEventsCount={upcomingEventsCount} setView={setView} />
+                {setEvents && (
+                    <QuickScheduleWidget events={events} setEvents={setEvents} />
+                )}
                 <TeacherKPIStatusBoard studentCount={students.length} fullyAssessed={metrics.fullyAssessed} />
-                <TeacherClassroomMetrics studentCount={students.length} fullyAssessed={metrics.fullyAssessed} inProgress={metrics.inProgress} notAssessed={metrics.notAssessed} />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="lg:col-span-2">
+                        <TeacherClassroomMetrics studentCount={students.length} fullyAssessed={metrics.fullyAssessed} inProgress={metrics.inProgress} notAssessed={metrics.notAssessed} />
+                    </div>
+                    <div className="lg:col-span-1">
+                        <TeacherAttendanceTrendCard students={students} setView={setView} />
+                    </div>
+                </div>
+                
+                <AIInsightsPanel students={students} aspects={aspectsList} assessments={assessments || {}} />
                 
                 <div className="flex justify-end mb-2">
                     <button 

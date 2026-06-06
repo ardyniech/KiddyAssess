@@ -81,6 +81,10 @@ async function startServer() {
       if (errorMessage.includes("429") || errorMessage.includes("Quota") || errorMessage.includes("quota") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
         return res.status(429).json({ error: "Quota gratis harian Gemini AI telah habis. Klik opsi Offline/System Narrative jika tidak ingin menunggu." });
       }
+      
+      if (errorMessage.includes("API key not valid") || errorMessage.includes("API key expired") || errorMessage.includes("API_KEY_INVALID")) {
+        return res.status(401).json({ error: "API Key Gemini tidak valid atau telah kedaluwarsa. Silakan perbarui di Workspace Settings atau gunakan opsi Offline/System Narrative." });
+      }
 
       res.status(500).json({ error: error.message });
     }
@@ -133,9 +137,236 @@ async function startServer() {
       res.json({ refinedText: data.refinedText || text });
     } catch (error: any) {
       console.error("Refine Text Gemini Error:", error);
-      res.status(500).json({ error: error.message || "Gagal menyempurnakan teks dengan AI." });
+      const errorMessage = error.message || "";
+      if (errorMessage.includes("429") || errorMessage.includes("Quota") || errorMessage.includes("quota") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+        return res.status(429).json({ error: "Quota gratis harian Gemini AI telah habis. Silakan coba besok atau gunakan narasi manual." });
+      }
+      if (errorMessage.includes("API key not valid") || errorMessage.includes("API key expired") || errorMessage.includes("API_KEY_INVALID")) {
+        return res.status(401).json({ error: "API Key Gemini tidak valid atau telah kedaluwarsa. Silakan perbarui di Workspace Settings." });
+      }
+      res.status(500).json({ error: errorMessage || "Gagal menyempurnakan teks dengan AI." });
     }
   });
+
+  // API Route: AI-driven Conflict Detector for Calendar Events
+  app.post("/api/calendar/detect-conflicts", async (req, res) => {
+    try {
+      const { newEvent, existingEvents } = req.body;
+
+      if (!process.env.GEMINI_API_KEY) {
+        const report = generateFallbackConflictReport(newEvent, existingEvents);
+        return res.json(report);
+      }
+
+      const prompt = `
+        Tugas Anda adalah memetakan dan mendeteksi konflik penjadwalan sekolah (Lembaga PAUD/TK) serta memberikan rekomendasi ditenagai kecerdasan buatan (Conflict Detection & Recommendations).
+
+        Acara yang ingin diajukan:
+        - Judul: ${newEvent.title}
+        - Tanggal: ${newEvent.date}
+        - Jam: ${newEvent.startTime} - ${newEvent.endTime}
+        - Kategori: ${newEvent.category} (Asesmen / Rapat Wali Murid / Event Sekolah)
+        - Deskripsi: ${newEvent.description}
+
+        Daftar Agenda Sekolah yang Sudah Ada Pada Tanggal Tersebut atau Dekat dengan Tanggal Tersebut:
+        ${existingEvents.map((e: any) => `- ${e.title} (${e.date}, ${e.startTime}-${e.endTime}, Kategori: ${e.category || 'Umum'})`).join("\n")}
+
+        Tugas Anda:
+        1. Bandingkan acara baru dengan acara yang sudah ada. Tentukan apakah ada konflik mutlak (overlapping jam pada hari yang sama) ATAU konflik pedagogik/operasional (misalnya, ada dua sesi interaksi orang tua di hari yang sama, jadwal ujian berturut-turut, atau kepadatan agenda bagi anak PAUD).
+        2. Berikan analisis singkat dalam Bahasa Indonesia yang profesional namun ramah (maksimal 3 kalimat).
+        3. Berikan saran berupa rekomendasi preventif atau alternatif jam/tanggal jika mendeteksi potensi kelelahan agenda (schedule congestion).
+        4. Tentukan status level keparahan konflik: "aman" (safe), "peringatan" (warning - padat/perlu penyesuaian), atau "konflik" (conflict - tabrakan jam secara langsung).
+
+        Kirimkan output dalam format JSON murni:
+        {
+          "status": "aman" | "peringatan" | "konflik",
+          "reason": "Analisis dari kecerdasan buatan mengenai overlap atau kepadatan jadwal...",
+          "recommendation": "Saran dari AI agar penjadwalan berjalan optimal..."
+        }
+      `;
+
+      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const responseText = response.text() || "{}";
+      const cleanedText = cleanJsonResponse(responseText);
+      res.json(JSON.parse(cleanedText));
+    } catch (error: any) {
+      console.error("Calendar conflict-detect API error:", error);
+      const report = generateFallbackConflictReport(req.body.newEvent, req.body.existingEvents);
+      res.json(report);
+    }
+  });
+
+  // API Route: AI Insights for Learning Patterns & Weekly Focus
+  app.post("/api/ai-insights", async (req, res) => {
+    try {
+      const { metrics } = req.body;
+
+      if (!process.env.GEMINI_API_KEY) {
+        const report = generateFallbackInsights(metrics);
+        return res.json(report);
+      }
+
+      const prompt = `
+        Tugas Anda adalah menganalisis data capaian perkembangan anak usia dini (PAUD/TK) secara agregat dan menghasilkan ringkasan pola belajar ("AI Insights") dalam Bahasa Indonesia yang indah, profesional, ramah, dan bernilai pedagogis tinggi.
+
+        Data Statistik Kelas Saat Ini:
+        - Total Siswa: ${metrics?.totalStudents || 0}
+        - Total Penilaian Diinput: ${metrics?.totalAssessments || 0}
+        - Distribusi Kelayakan Nilai: BB=${metrics?.scaleCounts?.BB || 0}, MB=${metrics?.scaleCounts?.MB || 0}, BSH=${metrics?.scaleCounts?.BSH || 0}, BSB=${metrics?.scaleCounts?.BSB || 0}
+
+        Capaian per Aspek Perkembangan:
+        ${(metrics?.aspectSummaries || []).map((a: any) => `- ${a.aspectName}: BB=${a.BB || 0}, MB=${a.MB || 0}, BSH=${a.BSH || 0}, BSB=${a.BSB || 0}`).join("\n")}
+
+        Tugas Anda:
+        1. Berikan Analisis Pola Belajar Singkat (Summary) mengenai tren tumbuh kembang anak di sekolah secara umum (maksimal 3 kalimat).
+        2. Cari 1-2 Aspek Kekuatan (Strengths) utama di mana persentase BSH+BSB paling dominan. Sebutkan nama aspek, metrik singkat, dan arti pedagogisnya.
+        3. Cari 1-2 Aspek Kebutuhan Fasilitasi (Concerns/Challenges) di mana persentase BB+MB butuh perhatian ekstra. Sebutkan nama aspek, metrik singkat, dan stimulasinya.
+        4. Rekomendasikan 2 Fokus Area Pembelajaran (Focus Areas) konkret, praktis, dan kreatif untuk guru terapkan di kelas pada MINGGU DEPAN.
+        5. Berikan 1 Tip Mingguan Pedagogis (weeklyTip) singkat yang ramah dan inspiratif bagi guru PAUD untuk menstimulasi semangat belajar anak.
+
+        Format Respon HARUS Berupa JSON Murni Seperti Contoh Berikut:
+        {
+          "summary": "Teks analisis umum...",
+          "strengths": [
+            {
+              "aspectName": "Bahasa",
+              "metric": "85% Siswa Capai BSH/BSB",
+              "analysis": "Sebagian besar siswa telah berani menceritakan kembali cerita mini dengan alur yang runut."
+            }
+          ],
+          "concerns": [
+            {
+              "aspectName": "Fisik Motorik",
+              "metric": "40% Siswa Masih BB/MB",
+              "analysis": "Beberapa anak masih menunjukkan kecanggungan memegang gunting mainan atau merobek kertas pola."
+            }
+          ],
+          "focusAreas": [
+            {
+              "title": "Fun Motorics Zone",
+              "description": "Fokuskan stimulasi otot tangan halus melingkar lewat aktivitas meremas adonan tepung warna-warni sebelum sesi inti pagi."
+            }
+          ],
+          "weeklyTip": "Cobalah bernyanyi bersama sebelum memberikan instruksi tenang untuk fokus yang lebih optimal."
+        }
+      `;
+
+      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const responseText = response.text() || "{}";
+      const cleanedText = cleanJsonResponse(responseText);
+      res.json(JSON.parse(cleanedText));
+    } catch (error: any) {
+      console.error("AI Insights API error:", error);
+      const report = generateFallbackInsights(req.body.metrics);
+      res.json(report);
+    }
+  });
+
+  // Local fallback rule-based system for AI Insights
+  function generateFallbackInsights(metrics: any) {
+    const defaultSummaries = [
+      "Secara umum, tumbuh kembang anak di kelompok ini menunjukkan tren positif, di mana sebagian besar siswa mulai aktif merespons stimulasi guru baik secara bahasa maupun kognitif dasar.",
+      "Kelas ini memiliki interaksi sosial yang menyenangkan. Stimulasi intensif direkomendasikan pada aspek fisik motorik untuk menyelaraskan ketahanan fisik kognitif sehari-hari."
+    ];
+
+    const summariesList = metrics?.aspectSummaries || [];
+    let strongestAspect = "Nilai Agama & Moral";
+    let weakestAspect = "Fisik Motorik";
+    let maxStrongPct = 0;
+    let maxWeakPct = 0;
+
+    summariesList.forEach((a: any) => {
+      const total = (a.BB || 0) + (a.MB || 0) + (a.BSH || 0) + (a.BSB || 0);
+      if (total > 0) {
+        const strongPct = ((a.BSH || 0) + (a.BSB || 0)) / total;
+        const weakPct = ((a.BB || 0) + (a.MB || 0)) / total;
+        if (strongPct > maxStrongPct) {
+          maxStrongPct = strongPct;
+          strongestAspect = a.aspectName;
+        }
+        if (weakPct > maxWeakPct) {
+          maxWeakPct = weakPct;
+          weakestAspect = a.aspectName;
+        }
+      }
+    });
+
+    const mockStrengths = [
+      {
+        aspectName: strongestAspect,
+        metric: `${Math.round(maxStrongPct * 100) || 75}% Siswa Berkembang Sesuai Harapan (BSH/BSB)`,
+        analysis: `Sebagian besar anak telah terbiasa mengeksplorasi potensi diri dalam ranah ini dengan antusias dan kemandirian tinggi.`
+      }
+    ];
+
+    const mockConcerns = [
+      {
+        aspectName: weakestAspect,
+        metric: `${Math.round(maxWeakPct * 100) || 30}% Siswa Masih Mulai Berkembang (BB/MB)`,
+        analysis: `Beberapa anak membutuhkan pendampingan personal secara berkala untuk merespon dan berpartisipasi penuh dalam aktivitas pembiasaan harian.`
+      }
+    ];
+
+    const mockFocusAreas = [
+      {
+        title: `Peningkatan Kompetensi ${weakestAspect}`,
+        description: `Rencanakan 2 aktivitas terarah berdurasi pendek sehari (sekitar 10-15 menit) guna memicu kemauan fungsional anak di ranah ${weakestAspect}.`
+      },
+      {
+        title: "Pembiasaan Jurnal Positif Harian",
+        description: "Catat minat konkret anak setiap pagi untuk merancang alat peraga edukatif yang tepat sasaran dengan keunikan personal murid."
+      }
+    ];
+
+    return {
+      summary: defaultSummaries[0],
+      strengths: mockStrengths,
+      concerns: mockConcerns,
+      focusAreas: mockFocusAreas,
+      weeklyTip: "Mulailah hari pembelajaran dengan pelukan hangat atau jabat tangan kreatif untuk membangun rasa aman (sense of security) pada anak."
+    };
+  }
+
+  // Local rule-based fallback conflict detection if API has errors or no API key is specified
+  function generateFallbackConflictReport(newEvent: any, existingEvents: any[]) {
+    const sameDayEvents = existingEvents.filter((e: any) => e.date === newEvent.date);
+    let status: "aman" | "peringatan" | "konflik" = "aman";
+    let reason = "Jadwal ini terpantau senggang dan belum ada agenda terdaftar di tanggal terpilih. Aman untuk dijadwalkan.";
+    let recommendation = "Silakan lanjutkan penjadwalan agenda.";
+
+    if (sameDayEvents.length > 0) {
+      const hasTimeOverlap = sameDayEvents.some((e: any) => {
+        if (!newEvent.startTime || !newEvent.endTime || !e.startTime || !e.endTime) return false;
+        const [nsH, nsM] = newEvent.startTime.split(":").map(Number);
+        const [neH, neM] = newEvent.endTime.split(":").map(Number);
+        const [esH, esM] = e.startTime.split(":").map(Number);
+        const [eeH, eeM] = e.endTime.split(":").map(Number);
+
+        const newStart = nsH * 60 + nsM;
+        const newEnd = neH * 60 + neM;
+        const existingStart = esH * 60 + esM;
+        const existingEnd = eeH * 60 + eeM;
+
+        return (newStart < existingEnd && newEnd > existingStart);
+      });
+
+      if (hasTimeOverlap) {
+        status = "konflik";
+        reason = `Terjadi konflik mutlak dengan agenda "${sameDayEvents[0].title}" yang dijadwalkan pada waktu yang sama (${sameDayEvents[0].startTime} - ${sameDayEvents[0].endTime}).`;
+        recommendation = "Harap geser jam pelaksanaan agar tidak bertumpukan secara langsung.";
+      } else {
+        status = "peringatan";
+        reason = `Terdapat ${sameDayEvents.length} agenda lain pada hari yang sama (${sameDayEvents.map((e: any) => e.title).join(", ")}). Aktivitas beruntun dapat memicu kepadatan kegiatan bagi siswa.`;
+        recommendation = "Pastikan jeda waktu antar-acara mencukupi untuk persiapan transisi anak PAUD.";
+      }
+    }
+
+    return { status, reason, recommendation };
+  }
 
   // Helper function to safely clean JSON block from Gemini
   function cleanJsonResponse(rawText: string): string {

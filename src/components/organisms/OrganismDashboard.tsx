@@ -22,9 +22,10 @@ interface OrganismDashboardProps {
   setView?: (view: string) => void;
   events?: any[];
   tasks?: any[];
+  setEvents?: React.Dispatch<React.SetStateAction<any[]>>;
 }
 
-export function OrganismDashboard({ students, assessments, aspects, onSelectStudent, onViewStudents, setView, events = [], tasks = [] }: OrganismDashboardProps) {
+export function OrganismDashboard({ students, assessments, aspects, onSelectStudent, onViewStudents, setView, events = [], tasks = [], setEvents }: OrganismDashboardProps) {
   const { schoolProfile } = useSchoolProfile();
   const { userRole, discoveredUsers } = usePermissions();
   
@@ -55,6 +56,7 @@ export function OrganismDashboard({ students, assessments, aspects, onSelectStud
         setView={setView} 
         events={events}
         tasks={tasks}
+        setEvents={setEvents}
       />
     );
   }

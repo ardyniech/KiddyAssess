@@ -4,6 +4,7 @@ import { SavedNarrative, loadKartikaScores, loadKartikaComments, saveKartikaComm
 import { useSchoolProfile } from '../../../context/SchoolProfileContext';
 import { KARTIKA_5NK_ASPECTS } from './KartikaData';
 import { generateStudentNarrative, refineStudentText } from '../../../services/aiService';
+import { calculateStudentTrend } from './autoGeneratorUtils';
 
 export function useReportGenerator(
     student: Student,
@@ -13,8 +14,14 @@ export function useReportGenerator(
     onNarrativesChange: (narratives: Record<string, SavedNarrative>) => void
 ) {
     const [generating, setGenerating] = useState<string | null>(null);
+    const [apiError, setApiError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'aspects' | 'kokurikulum' | 'kartika'>('aspects');
     const { schoolProfile } = useSchoolProfile();
+    const [autoProgress, setAutoProgress] = useState<{ active: boolean; currentAspect: string; percent: number }>({
+        active: false,
+        currentAspect: '',
+        percent: 0
+    });
 
     const [kartikaScores, setKartikaScores] = useState<Record<string, string>>({});
     const [kartikaComments, setKartikaComments] = useState<{ kesimpulan: string; catatanWali: string; catatanOrtu: string }>({
@@ -114,6 +121,10 @@ export function useReportGenerator(
             });
         } catch (err: any) {
             console.error("AI Generation failed, falling back to local description:", err);
+            if (err.message && (err.message.includes("API Key") || err.message.includes("Quota") || err.message.includes("401"))) {
+                setApiError(err.message);
+                setTimeout(() => setApiError(null), 5000);
+            }
             const localNarrative = generateNativeNarrative(aspectId);
             onNarrativesChange({
                 ...savedNarratives,
@@ -162,8 +173,12 @@ export function useReportGenerator(
                     } as any
                 });
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("AI Refinement failed:", err);
+            if (err.message && (err.message.includes("API Key") || err.message.includes("Quota") || err.message.includes("401"))) {
+                setApiError(err.message);
+                setTimeout(() => setApiError(null), 5000);
+            }
         } finally {
             setGenerating(null);
         }
@@ -199,8 +214,12 @@ export function useReportGenerator(
             } else {
                 throw new Error("AI disabled, falling back to static");
             }
-        } catch (err) {
+        } catch (err: any) {
             console.warn("AI generation failed or disabled. Generating via local rules...");
+            if (err.message && (err.message.includes("API Key") || err.message.includes("Quota") || err.message.includes("401"))) {
+                setApiError(err.message);
+                setTimeout(() => setApiError(null), 5000);
+            }
             const scoresArray = Object.values(kartikaScores);
             const bsb = scoresArray.filter(s => s === "BSB").length;
             const bsh = scoresArray.filter(s => s === "BSH").length;
@@ -265,10 +284,104 @@ export function useReportGenerator(
                 setKartikaComments(next);
                 await saveKartikaComments(student.id, next);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("AI refinement failed:", err);
+            if (err.message && (err.message.includes("API Key") || err.message.includes("Quota") || err.message.includes("401"))) {
+                setApiError(err.message);
+                setTimeout(() => setApiError(null), 5000);
+            }
         } finally {
             setGenerating(null);
+        }
+    };
+
+    const handleAutoGenerateAll = async () => {
+        setAutoProgress({ active: true, currentAspect: 'Membaca penilaian aktivitas & tren kemajuan...', percent: 5 });
+        const allAspectIds = [...aspects.map(a => a.id), 'kokurikulum'];
+        const totalSteps = allAspectIds.length + 1; // including Kartika
+        let stepCount = 0;
+        let currentNarratives = { ...savedNarratives };
+
+        // Analyze trends profile
+        const trend = calculateStudentTrend(aspects, allScores);
+
+        try {
+            // Process aspects
+            for (const aspectId of allAspectIds) {
+                const aspect = aspects.find(a => a.id === aspectId);
+                const aspectName = aspect ? aspect.name : 'Kokurikulum & Projek';
+                setAutoProgress({
+                    active: true,
+                    currentAspect: `Menganalisis kemajuan & menulis narasi ${aspectName}...`,
+                    percent: Math.round(((stepCount / totalSteps) * 90) + 5)
+                });
+
+                const indicators = aspect ? aspect.indicators : [];
+                const scores = allScores[aspectId] || {};
+                const tone = schoolProfile?.aiTone || 'appreciative';
+                const autoCorrect = schoolProfile?.autoCorrect || false;
+
+                try {
+                    // Integrate the computed trend data directly in a gentle prompt guideline so Gemini incorporates it!
+                    const trendAdvice = `Siswa ini memiliki tren kemajuan ${trend.trendLabel} (${trend.trendDesc}). Total capaian memuaskan: ${trend.excellentCount} indikator.`;
+                    
+                    const res = await fetch('/api/generate-narrative', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            studentName: student.name,
+                            aspectName,
+                            indicators,
+                            scores,
+                            tone,
+                            customNotes: `${trendAdvice} Pastikan tulisan laras dengan progres nyata ini.`,
+                            lengthTarget: 'standard',
+                            autoCorrect
+                        })
+                    });
+
+                    if (!res.ok) {
+                        throw new Error("HTTP error");
+                    }
+                    const data = await res.json();
+                    currentNarratives[aspectId] = {
+                        narrative: data.narrative || generateNativeNarrative(aspectId),
+                        advice: data.parentAdvice || "Teruskan bimbingan yang penuh kasih sayang di rumah.",
+                        tone,
+                        updatedAt: Date.now()
+                    } as any;
+                } catch (err) {
+                    console.warn(`Fallback to local narrative calculation due to API Key status for aspect: ${aspectId}`);
+                    currentNarratives[aspectId] = {
+                        narrative: generateNativeNarrative(aspectId),
+                        advice: "Pertahankan ketekunan belajar Ananda di rumah.",
+                        tone: 'offline-system',
+                        updatedAt: Date.now()
+                    } as any;
+                }
+
+                stepCount++;
+                onNarrativesChange({ ...currentNarratives });
+                await new Promise(r => setTimeout(r, 450));
+            }
+
+            // Process Kartika 5NK characters
+            setAutoProgress({
+                active: true,
+                currentAspect: "Menseleksi Nilai-nilai Karakter Kartika 5NK...",
+                percent: 95
+            });
+
+            await handleGenerateKartikaAI();
+
+            setAutoProgress({
+                active: false,
+                currentAspect: 'Selesai!',
+                percent: 100
+            });
+        } catch (error) {
+            console.error("Auto generate error:", error);
+            setAutoProgress({ active: false, currentAspect: '', percent: 0 });
         }
     };
 
@@ -309,6 +422,7 @@ export function useReportGenerator(
 
     return {
         generating,
+        apiError,
         activeTab,
         setActiveTab,
         handleGenerateAI,
@@ -317,6 +431,8 @@ export function useReportGenerator(
         kartikaComments,
         handleGenerateKartikaAI,
         handleRefineKartikaText,
-        updateKartikaComment
+        updateKartikaComment,
+        autoProgress,
+        handleAutoGenerateAll
     };
 }
