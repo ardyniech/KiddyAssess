@@ -6,12 +6,16 @@ import {
   persistentMultipleTabManager,
   doc, 
   getDocFromServer, 
-  getDoc 
+  getDoc,
+  setLogLevel
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { db as localDb } from './db';
 
 const app = initializeApp(firebaseConfig);
+
+// Set strict log level to silent to suppress Firestore connectivity warning spam in offline-first mode
+setLogLevel('silent');
 
 // Initialize Firestore with robust persistent multi-tab offline cache
 export const db = initializeFirestore(app, {

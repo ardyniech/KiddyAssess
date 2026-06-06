@@ -75,9 +75,9 @@ async function startServer() {
       const cleanedText = cleanJsonResponse(responseText);
       res.json(JSON.parse(cleanedText));
     } catch (error: any) {
-      console.error("Gemini Error:", error);
-      
       const errorMessage = error.message || "";
+      console.log(`AI Narrative Generator: Service status is offline fallback (${errorMessage.includes("API_KEY_INVALID") || errorMessage.includes("expired") ? "invalid/expired key" : "temporary error"}).`);
+      
       if (errorMessage.includes("429") || errorMessage.includes("Quota") || errorMessage.includes("quota") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
         return res.status(429).json({ error: "Quota gratis harian Gemini AI telah habis. Klik opsi Offline/System Narrative jika tidak ingin menunggu." });
       }
@@ -136,8 +136,9 @@ async function startServer() {
       const data = JSON.parse(cleanedText);
       res.json({ refinedText: data.refinedText || text });
     } catch (error: any) {
-      console.error("Refine Text Gemini Error:", error);
       const errorMessage = error.message || "";
+      console.log(`AI Refine Text: Service status is offline fallback (${errorMessage.includes("API_KEY_INVALID") || errorMessage.includes("expired") ? "invalid/expired key" : "temporary error"}).`);
+      
       if (errorMessage.includes("429") || errorMessage.includes("Quota") || errorMessage.includes("quota") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
         return res.status(429).json({ error: "Quota gratis harian Gemini AI telah habis. Silakan coba besok atau gunakan narasi manual." });
       }
@@ -185,14 +186,14 @@ async function startServer() {
         }
       `;
 
-      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const responseText = response.text() || "{}";
       const cleanedText = cleanJsonResponse(responseText);
       res.json(JSON.parse(cleanedText));
     } catch (error: any) {
-      console.error("Calendar conflict-detect API error:", error);
+      console.log("Calendar background check: Applying local offline predictive fallback system.");
       const report = generateFallbackConflictReport(req.body.newEvent, req.body.existingEvents);
       res.json(report);
     }
@@ -253,14 +254,14 @@ async function startServer() {
         }
       `;
 
-      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const responseText = response.text() || "{}";
       const cleanedText = cleanJsonResponse(responseText);
       res.json(JSON.parse(cleanedText));
     } catch (error: any) {
-      console.error("AI Insights API error:", error);
+      console.log("AI Insights background check: Applying local offline analysis fallback system.");
       const report = generateFallbackInsights(req.body.metrics);
       res.json(report);
     }
