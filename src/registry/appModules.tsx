@@ -13,7 +13,8 @@ import {
     CheckCircle2,
     ShieldCheck,
     ClipboardList,
-    Trophy
+    Trophy,
+    Brain
 } from 'lucide-react';
 import { AppModule } from '../types';
 
@@ -25,6 +26,7 @@ import { OrganismAppSettings } from '../components/organisms/OrganismAppSettings
 import { AttendanceModule } from '../components/organisms/attendance/AttendanceModule';
 import { CompareStudentsModule } from '../components/organisms/CompareStudentsModule';
 import { TeacherRewardsModule } from '../components/organisms/rewards/TeacherRewardsModule';
+import { OrganismAiInsightsModule } from '../components/organisms/insights/OrganismAiInsightsModule';
 
 import { StaffModule } from '../components/organisms/admin/StaffModule';
 import { FinanceModule } from '../components/organisms/admin/FinanceModule';
@@ -118,6 +120,16 @@ export const APP_MODULES: AppModule[] = [
         showInSidebar: true,
         requiredRoles: ['MASTER', 'SUPER_USER', 'ADMIN', 'TEACHER'],
         order: 6
+    },
+    {
+        id: 'insights',
+        name: 'Rekomendasi AI',
+        icon: Brain,
+        category: 'assessment',
+        component: OrganismAiInsightsModule,
+        showInSidebar: true,
+        requiredRoles: ['MASTER', 'SUPER_USER', 'ADMIN', 'TEACHER'],
+        order: 6.5
     },
     {
         id: 'finance',

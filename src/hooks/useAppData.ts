@@ -6,6 +6,8 @@ import { syncAnalyticsService } from '../services/syncAnalyticsService';
 import { SyncManager } from '../lib/SyncManager';
 import { Student, StudentAssessment, KanbanTask } from '../types';
 import { getSchoolProfile } from '../services/settingsService';
+import { scanConflicts, applyMergeResolutions } from '../lib/syncConflictEngine';
+import { SyncConflict } from '../types/sync';
 
 export function useAppData(user: User | null) {
   const [students, setStudents] = useState<Student[]>([]);
@@ -13,6 +15,8 @@ export function useAppData(user: User | null) {
   const [narratives, setNarratives] = useState<StudentNarratives>({});
   const [events, setEvents] = useState<Event[]>([]);
   const [tasks, setTasks] = useState<KanbanTask[]>([]);
+  const [activeConflicts, setActiveConflicts] = useState<SyncConflict[]>([]);
+  const [pendingCloudData, setPendingCloudData] = useState<any | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
@@ -75,14 +79,37 @@ export function useAppData(user: User | null) {
         let finalT = localTasks;
         
         if (cloud.length > 0) {
-            const cloudMax = Math.max(...cloud.map(s => s.updatedAt || 0));
-            const localMax = Math.max(...localStudents.map(s => s.updatedAt || 0));
-            if (cloudMax > localMax || localStudents.length === 0) {
-                finalS = cloud; 
-                finalA = cloudAssess?.assessments || {}; 
-                finalN = cloudAssess?.narratives || {};
-                
-                // Safe load and seeding of Kartika assessments from Cloud to Dexie DB
+            const foundConflicts = scanConflicts(localStudents, cloud, localAssess, cloudAssess?.assessments || {});
+            
+            if (foundConflicts.length > 0) {
+                // Hold conflicting state & raw data for resolution UI
+                setPendingCloudData({ cloudStudents: cloud, cloudAssess: cloudAssess });
+                setActiveConflicts(foundConflicts);
+
+                // Auto-resolve non-conflicting components
+                const { mergedS, mergedA, mergedN } = applyMergeResolutions(
+                  localStudents,
+                  cloud,
+                  localAssess,
+                  cloudAssess,
+                  {}
+                );
+                finalS = mergedS;
+                finalA = mergedA;
+                finalN = mergedN;
+            } else {
+                // Safe automatic merge
+                const { mergedS, mergedA, mergedN } = applyMergeResolutions(
+                  localStudents,
+                  cloud,
+                  localAssess,
+                  cloudAssess,
+                  {}
+                );
+                finalS = mergedS;
+                finalA = mergedA;
+                finalN = mergedN;
+
                 if (cloudAssess?.kartikaScores) {
                   const ksKeys = Object.keys(cloudAssess.kartikaScores);
                   for (const sid of ksKeys) {
@@ -285,12 +312,89 @@ export function useAppData(user: User | null) {
     save();
   }, [students, assessments, narratives, events, tasks, user, isLoaded]);
 
+  // Conflict Resolution Callback
+  const resolveConflicts = useCallback(async (resolutions: Record<string, 'local' | 'cloud'>) => {
+    if (!pendingCloudData) return;
+    
+    setIsLoaded(false);
+    const { mergedS, mergedA, mergedN } = applyMergeResolutions(
+      students.length > 0 ? students : [],
+      pendingCloudData.cloudStudents,
+      assessments,
+      pendingCloudData.cloudAssess,
+      resolutions
+    );
+
+    if (mergedS.length > 0) {
+      await db.students.bulkPut(mergedS);
+    }
+    await Promise.all([
+      saveAssessments(mergedA),
+      saveNarrativesLocal(mergedN),
+    ]);
+
+    // Handle index seed of Kartika custom lists
+    if (pendingCloudData.cloudAssess?.kartikaScores) {
+      for (const sid of Object.keys(pendingCloudData.cloudAssess.kartikaScores)) {
+        if (resolutions[sid] === 'cloud') {
+          await db.assessments.put({
+            id: `kartika_scores_${sid}`,
+            data: pendingCloudData.cloudAssess.kartikaScores[sid],
+          });
+        }
+      }
+    }
+    if (pendingCloudData.cloudAssess?.kartikaComments) {
+      for (const sid of Object.keys(pendingCloudData.cloudAssess.kartikaComments)) {
+        if (resolutions[sid] === 'cloud') {
+          await db.assessments.put({
+            id: `kartika_comments_${sid}`,
+            data: pendingCloudData.cloudAssess.kartikaComments[sid],
+          });
+        }
+      }
+    }
+
+    setStudents(mergedS);
+    setAssessments(mergedA);
+    setNarratives(mergedN);
+    setActiveConflicts([]);
+    setPendingCloudData(null);
+    setIsLoaded(true);
+
+    // Push resolutions to Cloud
+    setTimeout(() => {
+      triggerSync();
+    }, 500);
+  }, [students, assessments, narratives, pendingCloudData]);
+
   // Sync Logic
   const triggerSync = useCallback(async () => {
     if (isSyncing || !user || students.length === 0) return;
     const settings = await getSchoolProfile();
     if (!settings?.enableCloudSync) return;
     
+    setIsSyncing(true);
+    setSyncProgress(0);
+    setCurrentSyncItem('Mencocokkan Versi Cloud...');
+
+    try {
+      const latestCloud = await syncService.getStudents();
+      const latestCloudAssess = await syncService.getAssessments();
+      const liveConflicts = scanConflicts(students, latestCloud, assessments, latestCloudAssess?.assessments || {});
+
+      if (liveConflicts.length > 0) {
+        setPendingCloudData({ cloudStudents: latestCloud, cloudAssess: latestCloudAssess });
+        setActiveConflicts(liveConflicts);
+        setSyncStatus('Konflik!');
+        setCurrentSyncItem('Harap selesaikan konflik sebelum mencadangkan.');
+        setIsSyncing(false);
+        return;
+      }
+    } catch (e) {
+      console.warn("Could not retrieve latest cloud data for safety pre-sync check.", e);
+    }
+
     setIsSyncing(true);
     setSyncProgress(0);
     setCurrentSyncItem('Menghubungkan ke Cloud...');
@@ -389,6 +493,8 @@ export function useAppData(user: User | null) {
     lastSaved,
     syncProgress,
     currentSyncItem,
-    triggerSync
+    triggerSync,
+    activeConflicts,
+    resolveConflicts
   };
 }

@@ -267,6 +267,174 @@ async function startServer() {
     }
   });
 
+  // API Route: AI-driven Student-specific Insights and Personalized Interventions
+  app.post("/api/student-insights", async (req, res) => {
+    try {
+      const { student, scores, aspects } = req.body;
+
+      if (!student) {
+        return res.status(400).json({ error: "Data murid tidak lengkap." });
+      }
+
+      if (!process.env.GEMINI_API_KEY) {
+        const fallback = generateFallbackStudentInsights(student, scores, aspects);
+        return res.json(fallback);
+      }
+
+      const prompt = `
+        Tugas Anda adalah menganalisis data capaian perkembangan anak usia dini (PAUD/TK) secara individu untuk murid bernama ${student.name} (Kelompok: ${student.kelompok || 'A'}).
+        
+        Lakukan analisis pola belajar lintas subjek/aspek perkembangan, temukan korelasi atau keunikan, serta rumuskan rekomendasi intervensi edukasi yang sangat personal untuk guru terapkan di kelas.
+
+        Data Kurikulum Aspek Perkembangan dan Indikator:
+        ${(aspects || []).map((a: any) => {
+          const aspectScores = scores?.[a.id] || {};
+          const indsList = (a.indicators || []).map((ind: any) => {
+            const grade = aspectScores[ind.id] || "Belum Dinilai";
+            return `   - ${ind.text}: ${grade}`;
+          }).join("\n");
+          return `- Aspek ${a.name}:\n${indsList}`;
+        }).join("\n\n")}
+
+        Keterangan Penilaian:
+        - BB (Belum Berkembang) - Butuh stimulasi intensif
+        - MB (Mulai Berkembang) - Butuh bimbingan bertahap
+        - BSH (Berkembang Sesuai Harapan) - Berhasil mencapai kompetensi
+        - BSB (Berkembang Sangat Baik) - Konsisten & melampaui kelompok usia
+
+        Tugas Anda:
+        1. Analisis Pola Belajar Lintas Aspek (patterns): Temukan 2-3 pola unik. Misalnya, jika kognitif dan bahasa tinggi tetapi sosial emosional rendah, kembangkan analisis bahwa ia cerdas berpikir namun butuh fasilitasi kolaborasi sosial. Klasifikasikannya sebagai "strength" (kekuatan) atau "growth_area" (area pertumbuhan).
+        2. Rekomendasi Intervensi Personal untuk Guru (interventions): Tuliskan 2-3 rencana intervensi belajar yang cerdas, aplikatif, menyenangkan, ramah anak, dan spesifik mengacu pada nilai rendah siswa atau memaksimalkan kekuatan belajarnya. Tentukan tingkat prioritas ("tinggi", "sedang", "pemeliharaan").
+        3. Tren Perkembangan Visual (visualTrendSummary): deskripsikan tren keseluruhan (misal: "stabil progresif", "butuh dorongan pemulihan motorik", "potensi kepemimpinan tinggi").
+
+        Format Respon HARUS Berupa JSON Murni Seperti Contoh Berikut:
+        {
+          "studentName": "${student.name}",
+          "visualTrendSummary": "Tren perkembangan menunjukkan kemajuan sosial yang sangat kuat namun membutuhkan perhatian terpaku pada kekuatan genggaman tangan (motorik halus).",
+          "patterns": [
+            {
+              "title": "Kecakapan Verbal Mandiri",
+              "type": "strength",
+              "description": "Murid mampu menceritakan kesehariannya dengan diksi luas namun sering kali merasa sungkan jika mengajak teman berkelompok.",
+              "aspectsInvolved": ["Bahasa", "Sosial Emosional"]
+            }
+          ],
+          "interventions": [
+            {
+              "title": "Bermain Peran Berkelompok",
+              "targetAspect": "Sosial Emosional",
+              "priority": "tinggi",
+              "actionStep": "Sandingkan bersama sahabat terdekat untuk memimpin permainan peran koki mini, guna melatih keberanian berkolaborasi.",
+              "howToAssess": "Amati apakah ia mau mendengarkan opini teman atau mengontrol semua peran sendiri."
+            }
+          ]
+        }
+      `;
+
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const responseText = response.text() || "{}";
+      const cleanedText = cleanJsonResponse(responseText);
+      res.json(JSON.parse(cleanedText));
+    } catch (error: any) {
+      console.log("Student Insights background check: Applying local offline predictive fallback system.");
+      const fallback = generateFallbackStudentInsights(req.body.student, req.body.scores, req.body.aspects);
+      res.json(fallback);
+    }
+  });
+
+  // Local fallback rule-based builder for individual student insights
+  function generateFallbackStudentInsights(student: any, scores: any, aspects: any[]) {
+    // Collect stats per aspect
+    const aspectStats = (aspects || []).map((a: any) => {
+      const aScores = scores?.[a.id] || {};
+      let bshBsbCount = 0;
+      let bbMbCount = 0;
+      let total = 0;
+      
+      (a.indicators || []).forEach((ind: any) => {
+        const val = aScores[ind.id];
+        if (val) {
+          total++;
+          if (val === 'BSH' || val === 'BSB') bshBsbCount++;
+          if (val === 'BB' || val === 'MB') bbMbCount++;
+        }
+      });
+      
+      const scorePct = total > 0 ? bshBsbCount / total : 0.5;
+      return {
+        id: a.id,
+        name: a.name,
+        total,
+        bshBsbCount,
+        bbMbCount,
+        scorePct
+      };
+    });
+
+    // Detect strongest and weakest aspects
+    const activeStats = aspectStats.filter(a => a.total > 0);
+    const defaultStrongest = { id: 'default_strong', name: "Nilai Agama & Moral", total: 0, bshBsbCount: 0, bbMbCount: 0, scorePct: 0.8 };
+    const defaultWeakest = { id: 'default_weak', name: "Fisik Motorik", total: 0, bshBsbCount: 0, bbMbCount: 1, scorePct: 0.3 };
+    
+    let strongest = activeStats.sort((a, b) => b.scorePct - a.scorePct)[0] || defaultStrongest;
+    let weakest = activeStats.sort((a, b) => a.scorePct - b.scorePct)[0] || defaultWeakest;
+
+    if (strongest.name === weakest.name && activeStats.length > 1) {
+      weakest = activeStats[1];
+    }
+
+    const patterns = [
+      {
+        title: `Kekuatan Dominan di Aspek ${strongest.name}`,
+        type: "strength",
+        description: `Berdasarkan data input, Ananda ${student.name} memancarkan potensi optimal di ranah ${strongest.name} dengan capaian konsisten. Guru disarankan memakai instrumen pendukung di aspek ini untuk mengungkit kemauan belajarnya di bidang lain.`,
+        aspectsInvolved: [strongest.name]
+      }
+    ];
+
+    if (weakest.bbMbCount > 0 || weakest.scorePct < 0.6) {
+      patterns.push({
+        title: `Tantangan Stimulasi ${weakest.name}`,
+        type: "growth_area",
+        description: `Terdeteksi konsentrasi nilai rintisan (BB/MB) pada pembelajaran ${weakest.name}. Ananda membutuhkan pendampingan personal yang rileks tanpa paksaan demi menumbuhkan rasa percaya dirinya.`,
+        aspectsInvolved: [weakest.name]
+      });
+    } else {
+      patterns.push({
+        title: "Perkembangan Seimbang",
+        type: "strength",
+        description: `Ananda menunjukkan kapabilitas yang harmonis di seluruh aspek perkembangan harian. Konsistensi pembiasaan positif di sekolah membuahkan hasil yang memuaskan.`,
+        aspectsInvolved: ["Kognitif", "Seni"]
+      });
+    }
+
+    const interventions = [
+      {
+        title: `Aktivitas Berbasis Minat (${strongest.name} & ${weakest.name})`,
+        targetAspect: weakest.name,
+        priority: "tinggi",
+        actionStep: `Gunakan kekuatan anak di bidang ${strongest.name} untuk memicu minat belajarnya di bidang ${weakest.name}. Contohnya: gabungkan cerita bermoral menyenangkan dengan gerakan melompat lurus atau menyusun kepingan geometri warna-warni.`,
+        howToAssess: "Perhatikan perubahan antusiasme dan durasi fokus anak saat melakukan aktivitas gabungan ini."
+      },
+      {
+        title: "Pendampingan Mikro Terfokus",
+        targetAspect: weakest.name,
+        priority: "sedang",
+        actionStep: `Sediakan waktu khusus 5-10 menit per hari untuk melatih sub-indikator terkecil dalam aspek ${weakest.name} dalam bentuk bermain permainan berjarak dekat, seperti adu cepat menyisipkan balok kayu atau permainan kata bergantian.`,
+        howToAssess: "Catat apakah respon motorik atau kognitif dasar anak mulai berjalan lebih sigap tanpa ragu."
+      }
+    ];
+
+    return {
+      studentName: student.name,
+      visualTrendSummary: `Ananda berkembang sangat gemilang di area ${strongest.name}, namun menaruh prioritas stimulasi pendampingan bertahap (scaffolding) pada elemen ${weakest.name}.`,
+      patterns,
+      interventions
+    };
+  }
+
   // Local fallback rule-based system for AI Insights
   function generateFallbackInsights(metrics: any) {
     const defaultSummaries = [

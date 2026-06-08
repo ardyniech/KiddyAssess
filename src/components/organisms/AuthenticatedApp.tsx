@@ -11,6 +11,7 @@ import { useAuthenticatedApp } from './useAuthenticatedApp';
 import { getModuleById } from '../../registry/appModules';
 import { NotificationCenter } from './notification/NotificationCenter';
 import { loadStoredNotifications } from './notification/notificationStore';
+import { SyncConflictModal } from './sync/SyncConflictModal';
 
 export const AuthenticatedApp = ({ appData, navigation, showSplash }: any) => {
   return (
@@ -21,6 +22,7 @@ export const AuthenticatedApp = ({ appData, navigation, showSplash }: any) => {
 };
 
 const AuthenticatedAppContent = ({ appData, navigation, showSplash }: any) => {
+  const { activeConflicts, resolveConflicts } = appData;
   const {
       moduleProps,
       isLoaded,
@@ -190,6 +192,13 @@ const AuthenticatedAppContent = ({ appData, navigation, showSplash }: any) => {
         >
             <Plus size={24} />
         </button>
+      )}
+
+      {activeConflicts && activeConflicts.length > 0 && (
+        <SyncConflictModal 
+          conflicts={activeConflicts} 
+          onResolve={resolveConflicts} 
+        />
       )}
     </div>
   );

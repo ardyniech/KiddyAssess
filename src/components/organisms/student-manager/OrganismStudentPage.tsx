@@ -40,7 +40,9 @@ export function OrganismStudentPage({
   onAddStudent,
   onEditStudent,
   onDeleteStudent,
-  onSelectStudent
+  onSelectStudent,
+  assessments,
+  aspects
 }: OrganismStudentPageProps) {
   const { canPerformAction } = usePermissions();
   const isReadOnly = !canPerformAction('edit_student');
@@ -278,6 +280,7 @@ export function OrganismStudentPage({
             progress={getStudentProgress(studentToView.id)}
             onClose={() => setStudentToView(null)}
             onGoToAssessment={handleGoToAssessment}
+            assessments={assessments}
           />
         )}
         
